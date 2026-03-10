@@ -3,10 +3,15 @@ import { Routes, Route, Navigate } from "react-router-dom";
 import { Suspense, lazy } from "react";
 
 import AuthLayout from "./components/Layout/AuthLayout";
+import MainLayout from "./components/Layout/MainLayout";
+import ProtectedRoute from "./components/Layout/ProtectedRoute";
 import CustomMoonLoader from "./components/Loaders/CustomMoonLoader";
 
 const LoginPage = lazy(() => import("./pages/Auth/LoginPage"));
 const RegisterPage = lazy(() => import("./pages/Auth/RegisterPage"));
+const UserCreatePage = lazy(() => import("./pages/users/UserCreatePage"));
+// if you have a dashboard:
+// const HomePage = lazy(() => import("./pages/home/Home")); // or adjust path
 
 function App() {
   return (
@@ -21,7 +26,23 @@ function App() {
           <Route path="/sUsers/register" element={<RegisterPage />} />
         </Route>
 
-        {/* catch-all 404 can also redirect to login */}
+        {/* Main layout (protected area) */}
+        <Route element={<MainLayout />}>
+          {/* example home route */}
+          {/* <Route
+            path="/home-page"
+            element={
+              <ProtectedRoute>
+                <HomePage />
+              </ProtectedRoute>
+            }
+          /> */}
+
+          {/* user creation route */}
+         <Route path="/users/create" element={<UserCreatePage />} />
+        </Route>
+
+        {/* catch-all */}
         <Route path="*" element={<Navigate to="/sUsers/login" replace />} />
       </Routes>
     </Suspense>

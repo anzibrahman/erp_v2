@@ -10,7 +10,7 @@ import path from "path";
 import connectDB from "./config.js/db.js";
 
 import authRoute from "./routes/auth/authRoute.js";
-
+import userRoute from "./routes/user/userRoute.js";
 // ----------------- App Init -----------------
 dotenv.config();
 const app = express();
@@ -64,7 +64,7 @@ connectDB().catch((err) => console.error("DB connection failed", err));
 
 // ----------------- Routes -----------------
 app.use("/api/auth", authRoute);
-
+app.use("/api/users", userRoute);
 
 // ----------------- Production Build Serving -----------------
 if (process.env.NODE_ENV === "production") {
