@@ -7,13 +7,15 @@ import CustomMoonLoader from "./components/Loaders/CustomMoonLoader";
 
 const LoginPage = lazy(() => import("./pages/Auth/LoginPage"));
 const RegisterPage = lazy(() => import("./pages/Auth/RegisterPage"));
+const HomeLayout = lazy(() => import("./components/Layout/HomeLayout"));
+const HomePage = lazy(() => import("./pages/Home/HomePage"));
 
 function App() {
   return (
     <Suspense fallback={<CustomMoonLoader />}>
       <Routes>
         {/* redirect root to login */}
-        <Route path="/" element={<Navigate to="/sUsers/login" replace />} />
+        {/* <Route path="/" element={<Navigate to="/sUsers/login" replace />} /> */}
 
         {/* Auth layout: login + register */}
         <Route element={<AuthLayout />}>
@@ -21,7 +23,12 @@ function App() {
           <Route path="/sUsers/register" element={<RegisterPage />} />
         </Route>
 
-        {/* catch-all 404 can also redirect to login */}
+        {/* protected app layout */}
+        <Route element={<HomeLayout />}>
+          <Route path="/home" element={<HomePage />} />
+        </Route>
+
+        {/* catch-all */}
         <Route path="*" element={<Navigate to="/sUsers/login" replace />} />
       </Routes>
     </Suspense>
