@@ -8,7 +8,7 @@ import {
   useState,
 } from "react";
 import { Outlet, NavLink, useLocation, useNavigate } from "react-router-dom";
-import { useSelector } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import {
   Home,
   Wallet,
@@ -24,17 +24,23 @@ import {
   Banknote,
   MoreVertical,
   ChevronLeft,
+  ChevronDown,
+  Check,
 } from "lucide-react";
+import { capitalizeFirstLetter } from "../../../../shared/utils/string.js"
 
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import userAvatar from "@/assets/icons/user.png";
+import { logout } from "@/store/slices/authSlice";
 
 const mobileTabs = [
   { id: "home", label: "Home", icon: Home, to: "/home" },
   { id: "company", label: "Company", icon: Building2, to: "/company" },
   { id: "user", label: "User", icon: CircleUserRound, to: "/user" },
   { id: "settings", label: "Settings", icon: Settings, to: "/settings" },
+
 ];
 
 const routeTitleMap = {
@@ -58,6 +64,13 @@ const DEFAULT_MOBILE_HEADER_OPTIONS = {
   menuItems: [],
 };
 
+const DUMMY_COMPANIES = [
+  { id: "cmp-1", name: "Nova Traders Pvt Ltd" },
+  { id: "cmp-2", name: "BluePeak Distributors" },
+  { id: "cmp-3", name: "Sunrise Retail Hub" },
+  { id: "cmp-4", name: "Aster Manufacturing Co" },
+];
+
 const MobileHeaderContext = createContext(null);
 
 function getUserDisplayName(user) {
@@ -69,6 +82,129 @@ function getInitials(name) {
   if (!text) return "U";
   const parts = text.split(/\s+/).slice(0, 2);
   return parts.map((part) => part.charAt(0).toUpperCase()).join("");
+}
+
+function CompanySelector({ selectedCompany, onClick, tone = "light" }) {
+  const isDarkTone = tone === "dark";
+  const companyLabel = selectedCompany?.name || "Select Company";
+
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`mt-1 inline-flex max-w-[240px] items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] transition-colors ${
+        isDarkTone
+          ? "bg-white/10 text-blue-100 hover:bg-white/20"
+          : "bg-slate-100 text-slate-700 hover:bg-slate-200"
+      }`}
+    >
+      <Building2 className="h-3.5 w-3.5" />
+      <span className="truncate">{companyLabel}</span>
+      <ChevronDown className="h-3.5 w-3.5" />
+    </button>
+  );
+}
+
+function UserIdentityBlock({
+  displayName,
+  selectedCompany,
+  onCompanyClick,
+  tone = "light",
+}) {
+  const isDarkTone = tone === "dark";
+
+  return (
+    <div className="min-w-0">
+      <p
+        className={`truncate text-sm font-semibold leading-tight  ${
+          isDarkTone ? "text-white" : "text-slate-900"
+        }`}
+      >
+        {capitalizeFirstLetter(displayName)}
+      </p>
+      <CompanySelector
+        selectedCompany={selectedCompany}
+        onClick={onCompanyClick}
+        tone={tone}
+      />
+    </div>
+  );
+}
+
+function CompanyDrawer({
+  open,
+  selectedCompany,
+  companies,
+  onClose,
+  onSelectCompany,
+}) {
+  useEffect(() => {
+    if (!open) return undefined;
+
+    const onEscape = (event) => {
+      if (event.key === "Escape") {
+        onClose();
+      }
+    };
+
+    document.addEventListener("keydown", onEscape);
+    return () => document.removeEventListener("keydown", onEscape);
+  }, [onClose, open]);
+
+  return (
+    <div
+      className={`fixed inset-0 z-50 transition-all duration-200 ${
+        open ? "pointer-events-auto" : "pointer-events-none"
+      }`}
+      aria-hidden={!open}
+    >
+      <button
+        type="button"
+        aria-label="Close company drawer"
+        onClick={onClose}
+        className={`absolute inset-0 bg-black/45 transition-opacity duration-200 ${
+          open ? "opacity-100" : "opacity-0"
+        }`}
+      />
+
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label="Select Company"
+        className={`absolute inset-x-0 bottom-0 rounded-t-3xl bg-white px-4 pb-7 pt-4 shadow-2xl transition-transform duration-200 ${
+          open ? "translate-y-0" : "translate-y-full"
+        }`}
+      >
+        <div className="mx-auto mb-4 h-1.5 w-14 rounded-full bg-slate-300" />
+        <p className="text-base font-semibold text-slate-900">Select Company</p>
+        <p className="mt-1 text-xs text-slate-500">
+          Choose one company to continue
+        </p>
+
+        <div className="mt-4 space-y-2">
+          {companies.map((company) => {
+            const isSelected = selectedCompany?.id === company.id;
+
+            return (
+              <button
+                key={company.id}
+                type="button"
+                onClick={() => onSelectCompany(company)}
+                className={`flex w-full items-center justify-between rounded-xl border px-3 py-3 text-left transition-colors ${
+                  isSelected
+                    ? "border-blue-500 bg-blue-50 text-blue-700"
+                    : "border-slate-200 bg-white text-slate-800 hover:bg-slate-50"
+                }`}
+              >
+                <span className="text-sm font-medium">{company.name}</span>
+                {isSelected && <Check className="h-4 w-4" />}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
 }
 
 function useMobileHeaderContext() {
@@ -181,11 +317,28 @@ function MobileHeaderActions({ options, tone = "light" }) {
   );
 }
 
-function MobileWalletCard({ headerOptions }) {
+function MobileWalletCard({ headerOptions, selectedCompany, onCompanyClick }) {
   const navigate = useNavigate();
+  const dispatch = useDispatch();
   const user = useSelector((state) => state.auth.user);
   const displayName = getUserDisplayName(user);
   const initials = getInitials(displayName);
+
+  const onLogout = useCallback(() => {
+    dispatch(logout());
+    navigate("/sUsers/login", { replace: true });
+  }, [dispatch, navigate]);
+
+  const walletHeaderOptions = useMemo(
+    () => ({
+      ...headerOptions,
+      menuItems: [
+        ...(headerOptions?.menuItems || []),
+        { label: "Logout", onSelect: onLogout },
+      ],
+    }),
+    [headerOptions, onLogout],
+  );
 
   return (
     <div className="bg-linear-to-b from-blue-800 to-indigo-600 text-white">
@@ -215,17 +368,18 @@ function MobileWalletCard({ headerOptions }) {
         <div className="relative p-5">
           <div className="mb-6 flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-blue-300 to-indigo-400 ring-2 ring-white/20 shadow-lg">
-                <span className="text-sm font-bold text-white">{initials}</span>
-              </div>
-              <div>
-                <p className="text-[11px] leading-tight text-blue-200">
-                  Welcome back
-                </p>
-                <p className="text-sm font-semibold leading-tight">
-                  Hello, {displayName}!
-                </p>
-              </div>
+              <Avatar className="h-10 w-10 border border-white/30 bg-white/10">
+                <AvatarImage src={userAvatar} alt={displayName} />
+                <AvatarFallback className="bg-white/15 text-sm font-semibold text-white">
+                  {initials}
+                </AvatarFallback>
+              </Avatar>
+              <UserIdentityBlock
+                displayName={displayName}
+                selectedCompany={selectedCompany}
+                onCompanyClick={onCompanyClick}
+                tone="dark"
+              />
             </div>
 
             <div className="flex items-center gap-2">
@@ -236,7 +390,7 @@ function MobileWalletCard({ headerOptions }) {
                 <Bell className="h-4 w-4" />
                 <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-sky-400 ring-1 ring-blue-900" />
               </button>
-              <MobileHeaderActions options={headerOptions} tone="dark" />
+              <MobileHeaderActions options={walletHeaderOptions} tone="dark" />
             </div>
           </div>
 
@@ -472,7 +626,7 @@ function MobileBottomBar() {
   );
 }
 
-function MobileShell() {
+function MobileShell({ selectedCompany, onCompanyClick }) {
   const { pathname } = useLocation();
   const { headerOptionsByPath } = useMobileHeaderContext();
   const isHome = isHomePath(pathname);
@@ -492,7 +646,11 @@ function MobileShell() {
         <main className="pb-[104px]">
           {isHome ? (
             <>
-              <MobileWalletCard headerOptions={headerOptions} />
+              <MobileWalletCard
+                headerOptions={headerOptions}
+                selectedCompany={selectedCompany}
+                onCompanyClick={onCompanyClick}
+              />
               <div className="mt-4 px-4">
                 <Outlet />
               </div>
@@ -510,7 +668,7 @@ function MobileShell() {
   );
 }
 
-function DesktopShell() {
+function DesktopShell({ selectedCompany, onCompanyClick }) {
   const { pathname } = useLocation();
   const user = useSelector((state) => state.auth.user);
   const displayName = getUserDisplayName(user);
@@ -553,13 +711,17 @@ function DesktopShell() {
       </aside>
 
       <div className="flex flex-1 flex-col">
-        <header className="flex h-16 items-center justify-between border-b bg-white px-6">
+        <header className="flex h-20 items-center justify-between border-b bg-white px-6">
           <div>
-            <p className="text-xs text-muted-foreground">Welcome back</p>
-            <p className="text-sm font-semibold">Hello, {displayName}!</p>
+            <UserIdentityBlock
+              displayName={displayName}
+              selectedCompany={selectedCompany}
+              onCompanyClick={onCompanyClick}
+              tone="light"
+            />
           </div>
           <Avatar className="h-9 w-9">
-            <AvatarImage src="" alt={displayName} />
+            <AvatarImage src={userAvatar} alt={displayName} />
             <AvatarFallback>{initials}</AvatarFallback>
           </Avatar>
         </header>
@@ -568,7 +730,10 @@ function DesktopShell() {
           {pathname === "/home" ? (
             <>
               <div className="max-w-md">
-                <MobileWalletCard />
+                <MobileWalletCard
+                  selectedCompany={selectedCompany}
+                  onCompanyClick={onCompanyClick}
+                />
               </div>
               <div className="mt-6">
                 <Outlet />
@@ -585,6 +750,8 @@ function DesktopShell() {
 
 export default function HomeLayout() {
   const [headerOptionsByPath, setHeaderOptionsByPath] = useState({});
+  const [selectedCompany, setSelectedCompany] = useState(null);
+  const [isCompanyDrawerOpen, setIsCompanyDrawerOpen] = useState(false);
 
   const setHeaderOptionsForPath = useCallback((pathname, options) => {
     setHeaderOptionsByPath((prev) => ({
@@ -607,6 +774,19 @@ export default function HomeLayout() {
     });
   }, []);
 
+  const openCompanyDrawer = useCallback(() => {
+    setIsCompanyDrawerOpen(true);
+  }, []);
+
+  const closeCompanyDrawer = useCallback(() => {
+    setIsCompanyDrawerOpen(false);
+  }, []);
+
+  const handleSelectCompany = useCallback((company) => {
+    setSelectedCompany(company);
+    setIsCompanyDrawerOpen(false);
+  }, []);
+
   const mobileHeaderContextValue = useMemo(
     () => ({
       headerOptionsByPath,
@@ -618,8 +798,21 @@ export default function HomeLayout() {
 
   return (
     <MobileHeaderContext.Provider value={mobileHeaderContextValue}>
-      <DesktopShell />
-      <MobileShell />
+      <DesktopShell
+        selectedCompany={selectedCompany}
+        onCompanyClick={openCompanyDrawer}
+      />
+      <MobileShell
+        selectedCompany={selectedCompany}
+        onCompanyClick={openCompanyDrawer}
+      />
+      <CompanyDrawer
+        open={isCompanyDrawerOpen}
+        selectedCompany={selectedCompany}
+        companies={DUMMY_COMPANIES}
+        onClose={closeCompanyDrawer}
+        onSelectCompany={handleSelectCompany}
+      />
     </MobileHeaderContext.Provider>
   );
 }
