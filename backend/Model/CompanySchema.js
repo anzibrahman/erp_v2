@@ -6,11 +6,7 @@ const nanoId = customAlphabet("ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789", 4);
 
 const companySchema = new mongoose.Schema(
   {
-    cmp_id: {
-      type: String,
-      unique: true,
-      index: true,
-    },
+    
 
     name: {
       type: String,

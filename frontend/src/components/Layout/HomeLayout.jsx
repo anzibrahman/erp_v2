@@ -563,7 +563,7 @@ function MobileTopHeader({ isHome, title, headerOptions }) {
 
   return (
     <header className="sticky top-0 z-20 bg-white px-4 pt-4 text-slate-900">
-      <div className="relative mx-auto flex w-full max-w-md items-center justify-between">
+      <div className="relative flex w-full  items-center justify-between">
         <button
           type="button"
           onClick={onBack}
@@ -574,7 +574,7 @@ function MobileTopHeader({ isHome, title, headerOptions }) {
         <h1 className="pointer-events-none absolute left-1/2 -translate-x-1/2 text-sm font-bold text-slate-900">
           {title}
         </h1>
-        <div>
+        <div className="flex justify-end">
           <MobileHeaderActions options={headerOptions} tone="light" />
         </div>
       </div>
