@@ -13,7 +13,7 @@ export const loadAuthFromStorage = () => {
     return {
       ...parsed,
       // Re-verify the cookie session on every fresh app load.
-      authChecked: false,
+      isInitialized: false,
     };
   } catch {
     return null;

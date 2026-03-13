@@ -8,7 +8,7 @@ import { appRoutes } from "./routes/appRoutes";
 import { authRoutes } from "./routes/authRoutes";
 import { ROUTES } from "./routes/paths";
 import { masterRoutes } from "./routes/masterRoutes";
-import { logout, setAuthChecked, setUser } from "./store/slices/authSlice";
+import { logout, setInitialized, setUser } from "./store/slices/authSlice";
 
 function App() {
   const dispatch = useDispatch();
@@ -17,7 +17,7 @@ function App() {
     let isMounted = true;
 
     const verifySession = async () => {
-      dispatch(setAuthChecked(false));
+      dispatch(setInitialized(false));
 
       try {
         const data = await authService.me();
@@ -30,7 +30,7 @@ function App() {
         dispatch(logout());
       } finally {
         if (isMounted) {
-          dispatch(setAuthChecked(true));
+          dispatch(setInitialized(true));
         }
       }
     };

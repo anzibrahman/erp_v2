@@ -33,7 +33,6 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import userAvatar from "@/assets/icons/user.png";
-import { logout } from "@/store/slices/authSlice";
 import {
   clearSelectedCompany,
   setSelectedCompany,
@@ -44,6 +43,7 @@ import {
   useCompanyByIdQuery,
   useCompanyOptionsQuery,
 } from "@/hooks/queries/companyQueries";
+import { useLogoutUser } from "@/hooks/mutations/useLogoutUser";
 import { ROUTES } from "@/routes/paths";
 
 const mobileTabs = [
@@ -342,11 +342,15 @@ function MobileWalletCard({ headerOptions, selectedCompany, onCompanyClick }) {
   const user = useSelector((state) => state.auth.user);
   const displayName = getUserDisplayName(user);
   const initials = getInitials(displayName);
+  const { logoutUser } = useLogoutUser();
 
   const onLogout = useCallback(() => {
-    dispatch(logout());
-    navigate(ROUTES.login, { replace: true });
-  }, [dispatch, navigate]);
+    logoutUser()
+      .then(() => {
+        navigate(ROUTES.login, { replace: true });
+      })
+      .catch(() => {});
+  }, [logoutUser, navigate]);
 
   const walletHeaderOptions = useMemo(
     () => ({
