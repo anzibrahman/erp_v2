@@ -1,6 +1,7 @@
 import { lazy } from "react";
 import { Navigate, Route } from "react-router-dom";
 
+import ProtectedRoute from "@/components/Layout/ProtectedRoute";
 import { ROUTES } from "@/routes/paths";
 
 const HomeLayout = lazy(() => import("@/components/Layout/HomeLayout"));
@@ -17,7 +18,13 @@ const UserCreatePage = lazy(() => import("@/pages/users/UserCreatePage"));
 const UserListPage = lazy(() => import("@/pages/users/UserListPage"));
 
 export const appRoutes = (
-  <Route element={<HomeLayout />}>
+  <Route
+    element={
+      <ProtectedRoute>
+        <HomeLayout />
+      </ProtectedRoute>
+    }
+  >
     <Route path={ROUTES.root} element={<Navigate to={ROUTES.home} replace />} />
     <Route path={ROUTES.home} element={<HomePage />} />
     <Route path={ROUTES.user} element={<UserPage />} />

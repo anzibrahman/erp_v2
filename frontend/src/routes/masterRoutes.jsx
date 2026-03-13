@@ -1,6 +1,7 @@
 import { lazy } from "react";
 import { Route } from "react-router-dom";
 
+import ProtectedRoute from "@/components/Layout/ProtectedRoute";
 import { MASTER_ROUTE_REDIRECTS, ROUTES } from "@/routes/paths";
 import LegacyRedirect from "@/routes/LegacyRedirect";
 
@@ -15,7 +16,13 @@ const PartyListPage = lazy(() => import("@/pages/party/PartyListPage"));
 const PartyRegisterPage = lazy(() => import("@/pages/party/PartyRegisterPage"));
 
 export const masterRoutes = (
-  <Route element={<HomeLayout />}>
+  <Route
+    element={
+      <ProtectedRoute>
+        <HomeLayout />
+      </ProtectedRoute>
+    }
+  >
     <Route path={ROUTES.mastersCompany} element={<CompanyListPage />} />
     <Route
       path={ROUTES.mastersCompanyRegister}

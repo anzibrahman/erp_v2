@@ -1,16 +1,19 @@
-// src/components/Layout/ProtectedRoute.jsx
-import React from "react";
+import { useSelector } from "react-redux";
 import { Navigate } from "react-router-dom";
 
-const ProtectedRoute = ({ children }) => {
-  // Example: check token in localStorage or any auth state
-  const token = localStorage.getItem("token");
+import CustomMoonLoader from "@/components/Loaders/CustomMoonLoader";
+import { ROUTES } from "@/routes/paths";
 
-  if (!token) {
-    return <Navigate to="/sUsers/login" replace />;
+export default function ProtectedRoute({ children }) {
+  const { authChecked, isLoggedIn } = useSelector((state) => state.auth);
+
+  if (!authChecked) {
+    return <CustomMoonLoader />;
+  }
+
+  if (!isLoggedIn) {
+    return <Navigate to={ROUTES.login} replace />;
   }
 
   return children;
-};
-
-export default ProtectedRoute;
+}

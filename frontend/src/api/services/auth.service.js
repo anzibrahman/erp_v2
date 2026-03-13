@@ -9,4 +9,8 @@ export const authService = {
     const res = await api.post("/auth/login", payload);
     return res.data;
   },
+  me: async () => {
+    const res = await api.get("/auth/me", { skipGlobalLoader: true });
+    return res.data;
+  },
 };

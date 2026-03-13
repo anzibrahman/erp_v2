@@ -1,13 +1,47 @@
 import { Routes, Route, Navigate } from "react-router-dom";
-import { Suspense } from "react";
+import { Suspense, useEffect } from "react";
+import { useDispatch } from "react-redux";
 
+import { authService } from "./api/services/auth.service";
 import CustomMoonLoader from "./components/Loaders/CustomMoonLoader";
 import { appRoutes } from "./routes/appRoutes";
 import { authRoutes } from "./routes/authRoutes";
 import { ROUTES } from "./routes/paths";
 import { masterRoutes } from "./routes/masterRoutes";
+import { logout, setAuthChecked, setUser } from "./store/slices/authSlice";
 
 function App() {
+  const dispatch = useDispatch();
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const verifySession = async () => {
+      dispatch(setAuthChecked(false));
+
+      try {
+        const data = await authService.me();
+        if (!isMounted) return;
+
+        dispatch(setUser(data?.user ?? null));
+      } catch {
+        if (!isMounted) return;
+
+        dispatch(logout());
+      } finally {
+        if (isMounted) {
+          dispatch(setAuthChecked(true));
+        }
+      }
+    };
+
+    verifySession();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [dispatch]);
+
   return (
     <Suspense fallback={<CustomMoonLoader />}>
       <Routes>

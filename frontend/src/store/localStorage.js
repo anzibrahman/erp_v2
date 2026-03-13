@@ -8,7 +8,13 @@ export const loadAuthFromStorage = () => {
     if (!raw) return null;
 
     const parsed = JSON.parse(raw);
-    return parsed && typeof parsed === "object" ? parsed : null;
+    if (!parsed || typeof parsed !== "object") return null;
+
+    return {
+      ...parsed,
+      // Re-verify the cookie session on every fresh app load.
+      authChecked: false,
+    };
   } catch {
     return null;
   }
