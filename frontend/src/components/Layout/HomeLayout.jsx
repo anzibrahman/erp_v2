@@ -34,7 +34,16 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import userAvatar from "@/assets/icons/user.png";
 import { logout } from "@/store/slices/authSlice";
+import {
+  clearSelectedCompany,
+  setSelectedCompany,
+  setSelectedCompanyId,
+} from "@/store/slices/companySlice";
 import ListSearchBar from "@/components/common/ListSearchBar";
+import {
+  useCompanyByIdQuery,
+  useCompanyOptionsQuery,
+} from "@/hooks/queries/companyQueries";
 
 const mobileTabs = [
   { id: "home", label: "Home", icon: Home, to: "/home" },
@@ -65,13 +74,6 @@ const DEFAULT_MOBILE_HEADER_OPTIONS = {
   menuItems: [],
   search: null,
 };
-
-const DUMMY_COMPANIES = [
-  { id: "cmp-1", name: "Nova Traders Pvt Ltd" },
-  { id: "cmp-2", name: "BluePeak Distributors" },
-  { id: "cmp-3", name: "Sunrise Retail Hub" },
-  { id: "cmp-4", name: "Aster Manufacturing Co" },
-];
 
 const MobileHeaderContext = createContext(null);
 
@@ -137,6 +139,7 @@ function CompanyDrawer({
   open,
   selectedCompany,
   companies,
+  loading,
   onClose,
   onSelectCompany,
 }) {
@@ -184,25 +187,35 @@ function CompanyDrawer({
         </p>
 
         <div className="mt-4 space-y-2">
-          {companies.map((company) => {
-            const isSelected = selectedCompany?.id === company.id;
+          {loading && (
+            <p className="text-sm text-slate-500">Loading companies...</p>
+          )}
 
-            return (
-              <button
-                key={company.id}
-                type="button"
-                onClick={() => onSelectCompany(company)}
-                className={`flex w-full items-center justify-between rounded-xl border px-3 py-3 text-left transition-colors ${
-                  isSelected
-                    ? "border-blue-500 bg-blue-50 text-blue-700"
-                    : "border-slate-200 bg-white text-slate-800 hover:bg-slate-50"
-                }`}
-              >
-                <span className="text-sm font-medium">{company.name}</span>
-                {isSelected && <Check className="h-4 w-4" />}
-              </button>
-            );
-          })}
+          {!loading && companies.length === 0 && (
+            <p className="text-sm text-slate-500">No companies found</p>
+          )}
+
+          {!loading &&
+            companies.map((company) => {
+              const isSelected =
+                (selectedCompany?._id || selectedCompany?.id) === company.id;
+
+              return (
+                <button
+                  key={company.id}
+                  type="button"
+                  onClick={() => onSelectCompany(company)}
+                  className={`flex w-full items-center justify-between rounded-xl border px-3 py-3 text-left transition-colors ${
+                    isSelected
+                      ? "border-blue-500 bg-blue-50 text-blue-700"
+                      : "border-slate-200 bg-white text-slate-800 hover:bg-slate-50"
+                  }`}
+                >
+                  <span className="text-sm font-medium">{company.name}</span>
+                  {isSelected && <Check className="h-4 w-4" />}
+                </button>
+              );
+            })}
         </div>
       </div>
     </div>
@@ -762,9 +775,71 @@ function DesktopShell({ selectedCompany, onCompanyClick }) {
 }
 
 export default function HomeLayout() {
+  const dispatch = useDispatch();
+  const user = useSelector((state) => state.auth.user);
+  const isLoggedIn = useSelector((state) => state.auth.isLoggedIn);
+  const selectedCompanyId = useSelector((state) => state.company.selectedCompanyId);
+  const selectedCompany = useSelector((state) => state.company.selectedCompany);
   const [headerOptionsByPath, setHeaderOptionsByPath] = useState({});
-  const [selectedCompany, setSelectedCompany] = useState(null);
   const [isCompanyDrawerOpen, setIsCompanyDrawerOpen] = useState(false);
+  const companiesEnabled = Boolean(isLoggedIn && user);
+
+  console.log(selectedCompany);
+  
+
+  const {
+    data: companies = [],
+    isLoading: isCompaniesLoading,
+  } = useCompanyOptionsQuery(companiesEnabled);
+
+  const effectiveSelectedCompanyId = useMemo(() => {
+    if (!companies.length) return null;
+    if (selectedCompanyId && companies.some((company) => company.id === selectedCompanyId)) {
+      return selectedCompanyId;
+    }
+    return companies[0].id;
+  }, [companies, selectedCompanyId]);
+
+  const {
+    data: selectedCompanyDetails,
+  } = useCompanyByIdQuery(effectiveSelectedCompanyId, companiesEnabled);
+
+  useEffect(() => {
+    if (!companiesEnabled) return;
+
+    if (!effectiveSelectedCompanyId) {
+      if (selectedCompanyId || selectedCompany) {
+        dispatch(clearSelectedCompany());
+      }
+      return;
+    }
+
+    if (selectedCompanyId !== effectiveSelectedCompanyId) {
+      dispatch(setSelectedCompanyId(effectiveSelectedCompanyId));
+    }
+  }, [
+    companiesEnabled,
+    dispatch,
+    effectiveSelectedCompanyId,
+    selectedCompany,
+    selectedCompanyId,
+  ]);
+
+  useEffect(() => {
+    if (!selectedCompanyDetails) return;
+    dispatch(setSelectedCompany(selectedCompanyDetails));
+  }, [dispatch, selectedCompanyDetails]);
+
+  const selectedCompanyForUi = useMemo(() => {
+    const selectedId = effectiveSelectedCompanyId;
+    if (!selectedId) return null;
+
+    if ((selectedCompany?._id || selectedCompany?.id) === selectedId) {
+      return selectedCompany;
+    }
+
+    return companies.find((company) => company.id === selectedId) || null;
+  }, [companies, effectiveSelectedCompanyId, selectedCompany]);
 
   const setHeaderOptionsForPath = useCallback((pathname, options) => {
     setHeaderOptionsByPath((prev) => ({
@@ -796,9 +871,9 @@ export default function HomeLayout() {
   }, []);
 
   const handleSelectCompany = useCallback((company) => {
-    setSelectedCompany(company);
+    dispatch(setSelectedCompanyId(company?.id || null));
     setIsCompanyDrawerOpen(false);
-  }, []);
+  }, [dispatch]);
 
   const mobileHeaderContextValue = useMemo(
     () => ({
@@ -812,17 +887,18 @@ export default function HomeLayout() {
   return (
     <MobileHeaderContext.Provider value={mobileHeaderContextValue}>
       <DesktopShell
-        selectedCompany={selectedCompany}
+        selectedCompany={selectedCompanyForUi}
         onCompanyClick={openCompanyDrawer}
       />
       <MobileShell
-        selectedCompany={selectedCompany}
+        selectedCompany={selectedCompanyForUi}
         onCompanyClick={openCompanyDrawer}
       />
       <CompanyDrawer
         open={isCompanyDrawerOpen}
-        selectedCompany={selectedCompany}
-        companies={DUMMY_COMPANIES}
+        selectedCompany={selectedCompanyForUi}
+        companies={companies}
+        loading={isCompaniesLoading}
         onClose={closeCompanyDrawer}
         onSelectCompany={handleSelectCompany}
       />
