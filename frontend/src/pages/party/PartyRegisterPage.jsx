@@ -14,6 +14,7 @@ import {
 
 import { fetchAccountGroups } from "../../api/client/accountGroupApi";
 import { fetchSubGroups } from "../../api/client/subGroupApi";
+import { ROUTES } from "@/routes/paths";
 
 const schema = z.object({
   partyName: z.string().min(1, "Party name is required"),
@@ -168,7 +169,7 @@ const PartyRegisterPage = () => {
         reset({ partyType: "party" });
       }
 
-      navigate("/party/list");
+      navigate(ROUTES.mastersPartyList);
     } catch (err) {
       const msg =
         err?.response?.data?.message || err.message || "Save failed";

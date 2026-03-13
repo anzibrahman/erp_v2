@@ -7,6 +7,7 @@ import { fetchCompanies, deleteCompany } from "../../api/client/companyApi";
 import { Card, CardContent } from "@/components/ui/card";
 import { useMobileHeader } from "@/components/Layout/HomeLayout";
 import companyIcon from "../../assets/icons/company.png";
+import { ROUTES } from "@/routes/paths";
 
 const CompanyRow = ({ company, onDeleted }) => {
   const navigate = useNavigate();
@@ -15,7 +16,7 @@ const CompanyRow = ({ company, onDeleted }) => {
 
 
   const handleEdit = () => {
-    navigate(`/company/register?companyId=${company._id}`);
+    navigate(`${ROUTES.mastersCompanyRegister}?companyId=${company._id}`);
   };
 
   const handleDelete = async () => {
@@ -77,7 +78,7 @@ const CompanyListPage = () => {
       menuItems: [
         {
           label: "Add Company",
-          onSelect: () => navigate("/company/register"),
+          onSelect: () => navigate(ROUTES.mastersCompanyRegister),
         },
       ],
       search: {

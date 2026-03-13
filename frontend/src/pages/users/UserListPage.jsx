@@ -8,12 +8,13 @@ import {
   deleteUser,
 } from "../../api/client/userApi";
 import { confirmDelete } from "../../lib/confirmDelete";
+import { ROUTES } from "@/routes/paths";
 
 const UserCard = ({ user, onDeleted }) => {
   const navigate = useNavigate();
 
   const handleEdit = () => {
-    navigate(`/users/create?userId=${user._id}`);
+    navigate(`${ROUTES.usersCreate}?userId=${user._id}`);
   };
 
  const handleDelete = async () => {

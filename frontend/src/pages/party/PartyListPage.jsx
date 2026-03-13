@@ -8,12 +8,13 @@ import {
 } from "../../api/client/partyApi";
 import { useNavigate } from "react-router-dom";
 import { confirmDelete } from "../../lib/confirmDelete";
+import { ROUTES } from "@/routes/paths";
 
 const PartyCard = ({ party, onDeleted }) => {
   const navigate = useNavigate();
 
   const handleEdit = () => {
-    navigate(`/party/register?partyId=${party._id}`);
+    navigate(`${ROUTES.mastersPartyRegister}?partyId=${party._id}`);
   };
 
   const handleDelete = async () => {

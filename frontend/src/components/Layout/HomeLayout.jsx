@@ -44,28 +44,32 @@ import {
   useCompanyByIdQuery,
   useCompanyOptionsQuery,
 } from "@/hooks/queries/companyQueries";
+import { ROUTES } from "@/routes/paths";
 
 const mobileTabs = [
-  { id: "home", label: "Home", icon: Home, to: "/home" },
-  { id: "company", label: "Company", icon: Building2, to: "/company" },
-  { id: "user", label: "User", icon: CircleUserRound, to: "/user" },
-  { id: "settings", label: "Settings", icon: Settings, to: "/settings" },
+  { id: "home", label: "Home", icon: Home, to: ROUTES.home },
+  { id: "company", label: "Company", icon: Building2, to: ROUTES.mastersCompany },
+  { id: "user", label: "User", icon: CircleUserRound, to: ROUTES.user },
+  { id: "settings", label: "Settings", icon: Settings, to: ROUTES.settings },
 
 ];
 
 const routeTitleMap = {
-  "/home": "Home",
-  "/company": "Company",
-  "/user": "User",
-  "/settings": "Settings",
-  "/customers": "Customers",
-  "/products": "Products",
-  "/outstandings": "Outstandings",
-  "/statements": "Statements",
-  "/stock-register": "Stock Register",
-  "/cash-bank": "Cash / Bank",
-  "/create-order": "Create Order",
-  "/create-receipt": "Create Receipt",
+  [ROUTES.home]: "Home",
+  [ROUTES.mastersCompany]: "Company",
+  [ROUTES.mastersCompanyRegister]: "Company",
+  [ROUTES.user]: "User",
+  [ROUTES.settings]: "Settings",
+  [ROUTES.mastersCustomers]: "Customers",
+  [ROUTES.mastersProducts]: "Products",
+  [ROUTES.mastersPartyList]: "Parties",
+  [ROUTES.mastersPartyRegister]: "Party",
+  [ROUTES.outstandings]: "Outstandings",
+  [ROUTES.statements]: "Statements",
+  [ROUTES.stockRegister]: "Stock Register",
+  [ROUTES.cashBank]: "Cash / Bank",
+  [ROUTES.createOrder]: "Create Order",
+  [ROUTES.createReceipt]: "Create Receipt",
 };
 
 const DEFAULT_MOBILE_HEADER_OPTIONS = {
@@ -260,7 +264,7 @@ function getPageTitle(pathname) {
 }
 
 function isHomePath(pathname) {
-  return pathname === "/home";
+  return pathname === ROUTES.home;
 }
 
 function MobileHeaderActions({ options, tone = "light" }) {
@@ -341,7 +345,7 @@ function MobileWalletCard({ headerOptions, selectedCompany, onCompanyClick }) {
 
   const onLogout = useCallback(() => {
     dispatch(logout());
-    navigate("/sUsers/login", { replace: true });
+    navigate(ROUTES.login, { replace: true });
   }, [dispatch, navigate]);
 
   const walletHeaderOptions = useMemo(
@@ -421,14 +425,14 @@ function MobileWalletCard({ headerOptions, selectedCompany, onCompanyClick }) {
           <div className="flex gap-3">
             <Button
               type="button"
-              onClick={() => navigate("/create-order")}
+              onClick={() => navigate(ROUTES.createOrder)}
               className="flex-1 rounded-xl border border-sky-400/30 bg-sky-500/90 py-5 text-[13px] font-semibold text-white shadow-md shadow-sky-900/30 transition-all hover:-translate-y-0.5 hover:bg-sky-500"
             >
               Create Order
             </Button>
             <Button
               type="button"
-              onClick={() => navigate("/create-receipt")}
+              onClick={() => navigate(ROUTES.createReceipt)}
               className="flex-1 rounded-xl border border-rose-400/30 bg-rose-500/90 py-5 text-[13px] font-semibold text-white shadow-md shadow-rose-900/30 transition-all hover:-translate-y-0.5 hover:bg-rose-500"
             >
               Create Receipt
@@ -449,7 +453,7 @@ function MobileWalletCard({ headerOptions, selectedCompany, onCompanyClick }) {
           <div className="grid grid-cols-2 gap-3 text-xs">
             <button
               type="button"
-              onClick={() => navigate("/customers")}
+              onClick={() => navigate(ROUTES.mastersCustomers)}
               className="group relative rounded-3xl border border-amber-100 bg-gradient-to-br from-amber-50 to-white p-3 text-left shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md"
             >
               <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-2xl bg-amber-100 text-amber-600">
@@ -466,7 +470,7 @@ function MobileWalletCard({ headerOptions, selectedCompany, onCompanyClick }) {
 
             <button
               type="button"
-              onClick={() => navigate("/products")}
+              onClick={() => navigate(ROUTES.mastersProducts)}
               className="group relative rounded-3xl border border-pink-100 bg-gradient-to-br from-pink-50 to-white p-3 text-left shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md"
             >
               <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-2xl bg-pink-100 text-pink-600">
@@ -483,7 +487,7 @@ function MobileWalletCard({ headerOptions, selectedCompany, onCompanyClick }) {
 
             <button
               type="button"
-              onClick={() => navigate("/outstandings")}
+              onClick={() => navigate(ROUTES.outstandings)}
               className="group col-span-2 flex items-center justify-between rounded-2xl border border-slate-100 bg-white px-3 py-3 shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md"
             >
               <div className="flex items-center gap-3">
@@ -504,7 +508,7 @@ function MobileWalletCard({ headerOptions, selectedCompany, onCompanyClick }) {
 
             <button
               type="button"
-              onClick={() => navigate("/statements")}
+              onClick={() => navigate(ROUTES.statements)}
               className="group flex items-center gap-3 rounded-2xl border border-slate-100 bg-white px-3 py-3 shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md"
             >
               <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-indigo-100 text-indigo-500">
@@ -519,7 +523,7 @@ function MobileWalletCard({ headerOptions, selectedCompany, onCompanyClick }) {
 
             <button
               type="button"
-              onClick={() => navigate("/stock-register")}
+              onClick={() => navigate(ROUTES.stockRegister)}
               className="group flex items-center gap-3 rounded-2xl border border-slate-100 bg-white px-3 py-3 shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md"
             >
               <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-green-100 text-green-500">
@@ -534,7 +538,7 @@ function MobileWalletCard({ headerOptions, selectedCompany, onCompanyClick }) {
 
             <button
               type="button"
-              onClick={() => navigate("/cash-bank")}
+              onClick={() => navigate(ROUTES.cashBank)}
               className="group col-span-2 flex items-center justify-between rounded-2xl border border-slate-100 bg-gradient-to-r from-teal-50/80 to-white px-3 py-3 shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md"
             >
               <div className="flex items-center gap-3">
@@ -571,7 +575,7 @@ function MobileTopHeader({ isHome, title, headerOptions }) {
       navigate(-1);
       return;
     }
-    navigate("/home", { replace: true });
+    navigate(ROUTES.home, { replace: true });
   };
 
   return (
@@ -708,7 +712,7 @@ function DesktopShell({ selectedCompany, onCompanyClick }) {
         </div>
         <nav className="flex-1 space-y-2 px-4 py-4 text-sm">
           <NavLink
-            to="/home"
+            to={ROUTES.home}
             className={({ isActive }) =>
               `flex w-full items-center gap-2 text-left ${
                 isActive ? "font-medium text-primary" : "text-muted-foreground"
@@ -753,7 +757,7 @@ function DesktopShell({ selectedCompany, onCompanyClick }) {
         </header>
 
         <main className="flex-1 overflow-y-auto p-6">
-          {pathname === "/home" ? (
+          {pathname === ROUTES.home ? (
             <>
               <div className="max-w-md">
                 <MobileWalletCard
