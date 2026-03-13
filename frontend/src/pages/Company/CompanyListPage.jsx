@@ -7,33 +7,39 @@ import {
   deleteCompany,
 } from "../../api/client/companyApi";
 import { useNavigate } from "react-router-dom";
+import { confirmDelete } from "../../lib/confirmDelete";
 
 const CompanyCard = ({ company, onDeleted }) => {
   const navigate = useNavigate();
+
 
   const handleEdit = () => {
     navigate(`/company/register?companyId=${company._id}`);
   };
 
   const handleDelete = async () => {
-    if (!window.confirm("Delete this company?")) return;
-    try {
-      const res = await deleteCompany(company._id);
-      toast.success(res.data.message || "Company deleted");
-      onDeleted(company._id);
-    } catch (err) {
-      const msg =
-        err?.response?.data?.message || err.message || "Delete failed";
-      toast.error(msg);
-    }
-  };
-
+   const ok = await confirmDelete("Delete this party?");
+   if (!ok) return;
+ 
+   try {
+     const res = await deleteCompany(company._id);
+     toast.success(res.data.message || "Party deleted");
+     onDeleted(party._id);
+   } catch (err) {
+     const msg =
+       err?.response?.data?.message || err.message || "Delete failed";
+     toast.error(msg);
+   }
+ };
   return (
     <div className="bg-white shadow-sm rounded-lg p-4 flex items-center justify-between mb-3 w-full">
       <div className="flex items-center gap-3">
         <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 flex-shrink-0">
           <FaBuilding size={18} />
         </div>
+        
+ 
+    
         <h3 className="text-sm font-semibold text-gray-900">
           {company.name}
         </h3>

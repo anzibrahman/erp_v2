@@ -1,5 +1,5 @@
 // src/pages/users/UserCreatePage.jsx
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -8,6 +8,8 @@ import api from "../../api/client/apiClient";
 import { FaUser } from "react-icons/fa";
 import { MdEmail } from "react-icons/md";
 import { FaPhone } from "react-icons/fa6";
+import { useSearchParams, useNavigate } from "react-router-dom";
+import { fetchUserById, updateUser } from "../../api/client/userApi";
 
 const schema = z.object({
   userName: z.string().min(1, "Name is required"),
@@ -22,13 +24,20 @@ const schema = z.object({
     .regex(
       /(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])/,
       "Password must contain upper, lower, number & special char"
-    ),
+    )
+    .optional(), // in edit, you may allow empty to keep same password
   role: z.enum(["admin", "staff"]).default("staff"),
 });
 
 const UserCreatePage = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [loadingUser, setLoadingUser] = useState(false);
+
+  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const userId = searchParams.get("userId");
+  const isEdit = Boolean(userId);
 
   const {
     register,
@@ -42,6 +51,34 @@ const UserCreatePage = () => {
     },
   });
 
+  // Load user data when editing
+  useEffect(() => {
+    const loadUser = async () => {
+      if (!userId) return;
+      try {
+        setLoadingUser(true);
+        const res = await fetchUserById(userId);
+        const u = res.data;
+        reset({
+          userName: u.userName || "",
+          email: u.email || "",
+          mobileNumber: u.mobileNumber || "",
+          // password left empty intentionally
+          role: u.role || "staff",
+        });
+      } catch (err) {
+        const msg =
+          err?.response?.data?.message ||
+          err.message ||
+          "Failed to load user";
+        toast.error(msg);
+      } finally {
+        setLoadingUser(false);
+      }
+    };
+    loadUser();
+  }, [userId, reset]);
+
   const onSubmit = async (values) => {
     try {
       setLoading(true);
@@ -50,16 +87,27 @@ const UserCreatePage = () => {
         userName: values.userName.trim(),
         email: values.email.trim(),
         mobileNumber: values.mobileNumber.trim(),
-        password: values.password,
-        role: values.role, // "staff" or "admin"
+        role: values.role,
       };
 
-      const res = await api.post("/users/staff", payload);
-      toast.success(res.data.message || "User created successfully");
-      reset({ role: "staff" });
+      if (!isEdit || values.password) {
+        // send password only on create, or when changed in edit
+        payload.password = values.password;
+      }
+
+      if (isEdit) {
+        const res = await updateUser(userId, payload);
+        toast.success(res.data.message || "User updated successfully");
+      } else {
+        const res = await api.post("/users/staff", payload);
+        toast.success(res.data.message || "User created successfully");
+        reset({ role: "staff" });
+      }
+
+      navigate("/users/list");
     } catch (err) {
       const msg =
-        err?.response?.data?.message || err.message || "User creation failed";
+        err?.response?.data?.message || err.message || "User save failed";
       toast.error(msg);
     } finally {
       setLoading(false);
@@ -75,131 +123,143 @@ const UserCreatePage = () => {
           </div>
           <div>
             <h2 className="text-lg font-semibold text-gray-900">
-              Create User
+              {isEdit ? "Edit User" : "Create User"}
             </h2>
             <p className="text-xs text-gray-500">
-              Add staff users under your admin account.
+              {isEdit
+                ? "Update staff user details."
+                : "Add staff users under your admin account."}
             </p>
           </div>
         </div>
 
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
-          {/* Name */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Name
-            </label>
-            <div className="relative">
-              <input
-                type="text"
-                className="w-full border border-gray-300 rounded-md py-2 pl-3 pr-9 text-sm outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                {...register("userName")}
-              />
-              <span className="absolute inset-y-0 right-3 flex items-center text-gray-400">
-                <FaUser />
-              </span>
+        {loadingUser ? (
+          <p className="text-sm text-gray-500">Loading user...</p>
+        ) : (
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+            {/* Name */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Name
+              </label>
+              <div className="relative">
+                <input
+                  type="text"
+                  className="w-full border border-gray-300 rounded-md py-2 pl-3 pr-9 text-sm outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  {...register("userName")}
+                />
+                <span className="absolute inset-y-0 right-3 flex items-center text-gray-400">
+                  <FaUser />
+                </span>
+              </div>
+              {errors.userName && (
+                <p className="text-xs text-red-500 mt-1">
+                  {errors.userName.message}
+                </p>
+              )}
             </div>
-            {errors.userName && (
-              <p className="text-xs text-red-500 mt-1">
-                {errors.userName.message}
-              </p>
-            )}
-          </div>
 
-          {/* Email */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Email
-            </label>
-            <div className="relative">
-              <input
-                type="email"
-                className="w-full border border-gray-300 rounded-md py-2 pl-3 pr-9 text-sm outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                {...register("email")}
-              />
-              <span className="absolute inset-y-0 right-3 flex items-center text-gray-400">
-                <MdEmail />
-              </span>
+            {/* Email */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Email
+              </label>
+              <div className="relative">
+                <input
+                  type="email"
+                  className="w-full border border-gray-300 rounded-md py-2 pl-3 pr-9 text-sm outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  {...register("email")}
+                />
+                <span className="absolute inset-y-0 right-3 flex items-center text-gray-400">
+                  <MdEmail />
+                </span>
+              </div>
+              {errors.email && (
+                <p className="text-xs text-red-500 mt-1">
+                  {errors.email.message}
+                </p>
+              )}
             </div>
-            {errors.email && (
-              <p className="text-xs text-red-500 mt-1">
-                {errors.email.message}
-              </p>
-            )}
-          </div>
 
-          {/* Mobile */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Mobile
-            </label>
-            <div className="relative">
-              <input
-                type="text"
-                className="w-full border border-gray-300 rounded-md py-2 pl-3 pr-9 text-sm outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                {...register("mobileNumber")}
-              />
-              <span className="absolute inset-y-0 right-3 flex items-center text-gray-400">
-                <FaPhone />
-              </span>
+            {/* Mobile */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Mobile
+              </label>
+              <div className="relative">
+                <input
+                  type="text"
+                  className="w-full border border-gray-300 rounded-md py-2 pl-3 pr-9 text-sm outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  {...register("mobileNumber")}
+                />
+                <span className="absolute inset-y-0 right-3 flex items-center text-gray-400">
+                  <FaPhone />
+                </span>
+              </div>
+              {errors.mobileNumber && (
+                <p className="text-xs text-red-500 mt-1">
+                  {errors.mobileNumber.message}
+                </p>
+              )}
             </div>
-            {errors.mobileNumber && (
-              <p className="text-xs text-red-500 mt-1">
-                {errors.mobileNumber.message}
-              </p>
-            )}
-          </div>
 
-          {/* Password */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Password
-            </label>
-            <div className="relative">
-              <input
-                type={showPassword ? "text" : "password"}
-                className="w-full border border-gray-300 rounded-md py-2 pl-3 pr-9 text-sm outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                {...register("password")}
-              />
-              <span
-                className="absolute inset-y-0 right-3 flex items-center text-gray-400 cursor-pointer"
-                onClick={() => setShowPassword((v) => !v)}
+            {/* Password */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Password {isEdit && <span className="text-xs text-gray-400">(leave blank to keep same)</span>}
+              </label>
+              <div className="relative">
+                <input
+                  type={showPassword ? "text" : "password"}
+                  className="w-full border border-gray-300 rounded-md py-2 pl-3 pr-9 text-sm outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  {...register("password")}
+                />
+                <span
+                  className="absolute inset-y-0 right-3 flex items-center text-gray-400 cursor-pointer"
+                  onClick={() => setShowPassword((v) => !v)}
+                >
+                  {showPassword ? "🙈" : "👁️"}
+                </span>
+              </div>
+              {errors.password && (
+                <p className="text-xs text-red-500 mt-1">
+                  {errors.password.message}
+                </p>
+              )}
+            </div>
+
+            {/* Role */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Role
+              </label>
+              <select
+                className="w-full border border-gray-300 rounded-md py-2 px-3 text-sm outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                {...register("role")}
               >
-                {showPassword ? "🙈" : "👁️"}
-              </span>
+                <option value="staff">Staff</option>
+                <option value="admin">Admin</option>
+              </select>
             </div>
-            {errors.password && (
-              <p className="text-xs text-red-500 mt-1">
-                {errors.password.message}
-              </p>
-            )}
-          </div>
 
-          {/* Role */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Role
-            </label>
-            <select
-              className="w-full border border-gray-300 rounded-md py-2 px-3 text-sm outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              {...register("role")}
-            >
-              <option value="staff">Staff</option>
-              <option value="admin">Admin</option>
-            </select>
-          </div>
-
-          {/* Submit */}
-          <div className="pt-2 flex justify-end">
-            <button
-              type="submit"
-              disabled={loading}
-              className="px-5 py-2 rounded-md bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold disabled:opacity-70 disabled:cursor-not-allowed"
-            >
-              {loading ? "Saving..." : "Create User"}
-            </button>
-          </div>
-        </form>
+            {/* Submit */}
+            <div className="pt-2 flex justify-end">
+              <button
+                type="submit"
+                disabled={loading}
+                className="px-5 py-2 rounded-md bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold disabled:opacity-70 disabled:cursor-not-allowed"
+              >
+                {loading
+                  ? isEdit
+                    ? "Updating..."
+                    : "Saving..."
+                  : isEdit
+                  ? "Update User"
+                  : "Create User"}
+              </button>
+            </div>
+          </form>
+        )}
       </div>
     </div>
   );

@@ -52,3 +52,89 @@ export const createStaffUser = async (req, res) => {
     return res.status(500).json({ message: "Internal server error" });
   }
 };
+
+
+
+// List all staff under current admin
+export const listStaffUsers = async (req, res) => {
+  try {
+    const adminId = req.user.id; // logged-in primary user
+
+    const users = await User.find({
+      owner: adminId,     // match your field name
+      role: "staff",      // only staff
+    })
+      .sort({ createdAt: -1 })
+      .select("-password");
+
+    return res.json(users);
+  } catch (err) {
+    console.error("listStaffUsers error:", err);
+    return res.status(500).json({ message: "Failed to fetch users" });
+  }
+};
+
+// Get single staff user
+export const getStaffUserById = async (req, res) => {
+  try {
+    const adminId = req.user.id;
+    const { id } = req.params;
+
+    const user = await User.findOne({
+      _id: id,
+      owner: adminId,
+      role: "staff",
+    }).select("-password");
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    res.json(user);
+  } catch (err) {
+    res.status(500).json({ message: "Failed to fetch user" });
+  }
+};
+
+export const updateStaffUser = async (req, res) => {
+  try {
+    const adminId = req.user.id;
+    const { id } = req.params;
+    const { userName, email, mobileNumber, role } = req.body;
+
+    const user = await User.findOneAndUpdate(
+      { _id: id, owner: adminId, role: "staff" },
+      { userName, email, mobileNumber, role },
+      { new: true }
+    ).select("-password");
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    res.json({ message: "User updated", user });
+  } catch (err) {
+    res.status(500).json({ message: "Failed to update user" });
+  }
+};
+
+export const deleteStaffUser = async (req, res) => {
+  try {
+    const adminId = req.user.id;
+    const { id } = req.params;
+
+    const user = await User.findOneAndDelete({
+      _id: id,
+      owner: adminId,
+      role: "staff",
+    });
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    res.json({ message: "User deleted" });
+  } catch (err) {
+    res.status(500).json({ message: "Failed to delete user" });
+  }
+};

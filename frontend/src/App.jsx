@@ -7,13 +7,14 @@ import MainLayout from "./components/Layout/MainLayout";
 // import ProtectedRoute from "./components/Layout/ProtectedRoute";
 import CustomMoonLoader from "./components/Loaders/CustomMoonLoader";
 import CompanyRegisterPage from "./pages/Company/CompanyRegisterPage";
+
 const CompanyListPage = lazy(() => import("./pages/Company/CompanyListPage"));
 const LoginPage = lazy(() => import("./pages/Auth/LoginPage"));
 const RegisterPage = lazy(() => import("./pages/Auth/RegisterPage"));
 const UserCreatePage = lazy(() => import("./pages/users/UserCreatePage"));
 const PartyListPage = lazy(() => import("./pages/party/PartyListPage"));
 const PartyRegisterPage = lazy(() => import("./pages/party/PartyRegisterPage"));
-
+const UserListPage = lazy(() => import("./pages/users/UserListPage"));
 
 // cnst HomePage = lazy(() => import("./pages/home/Home"));
 
@@ -88,6 +89,17 @@ function App() {
     // </ProtectedRoute>
   }
 />
+
+<Route
+  path="/users/list"
+  element={
+    // <ProtectedRoute>
+      <UserListPage />
+    // </ProtectedRoute>
+  }
+/>
+
+
         </Route>
 
         {/* catch-all */}

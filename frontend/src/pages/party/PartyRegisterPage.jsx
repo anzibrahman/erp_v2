@@ -51,8 +51,10 @@ const PartyRegisterPage = () => {
   const [subGroups, setSubGroups] = useState([]);
   const navigate = useNavigate();
 
-  const cmp_id = localStorage.getItem("activeCompanyId");
-
+ const cmp_id =
+  localStorage.getItem("activeCompanyId") || "69b1055e2a47bb531f77a469";
+  
+  
   const {
     register,
     handleSubmit,
