@@ -1,5 +1,5 @@
 // src/pages/party/PartyListPage.jsx
-import React, { useEffect, useRef, useState, useCallback } from "react";
+import React, { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { FaUserFriends, FaEdit, FaTrash } from "react-icons/fa";
 import {
@@ -7,6 +7,7 @@ import {
   deleteParty,
 } from "../../api/client/partyApi";
 import { useNavigate } from "react-router-dom";
+import { confirmDelete } from "../../lib/confirmDelete";
 
 const PartyCard = ({ party, onDeleted }) => {
   const navigate = useNavigate();
@@ -16,17 +17,19 @@ const PartyCard = ({ party, onDeleted }) => {
   };
 
   const handleDelete = async () => {
-    if (!window.confirm("Delete this party?")) return;
-    try {
-      const res = await deleteParty(party._id);
-      toast.success(res.data.message || "Party deleted");
-      onDeleted(party._id);
-    } catch (err) {
-      const msg =
-        err?.response?.data?.message || err.message || "Delete failed";
-      toast.error(msg);
-    }
-  };
+  const ok = await confirmDelete("Delete this party?");
+  if (!ok) return;
+
+  try {
+    const res = await deleteParty(party._id);
+    toast.success(res.data.message || "Party deleted");
+    onDeleted(party._id);
+  } catch (err) {
+    const msg =
+      err?.response?.data?.message || err.message || "Delete failed";
+    toast.error(msg);
+  }
+};
 
   return (
     <div className="bg-white shadow-sm rounded-lg p-4 flex items-center justify-between mb-3 w-full">
@@ -66,67 +69,56 @@ const PartyCard = ({ party, onDeleted }) => {
 
 const PartyListPage = () => {
   const [parties, setParties] = useState([]);
-  const [page, setPage] = useState(1);
+  const [page, setPage] = useState(1);        // optional if you want load more
   const [hasMore, setHasMore] = useState(true);
-  const [loadingPage, setLoadingPage] = useState(false);
-  const loaderRef = useRef(null);
+  const [loading, setLoading] = useState(false);
 
-  const cmp_id = localStorage.getItem("activeCompanyId");
+  const cmp_id =
+  localStorage.getItem("activeCompanyId") || "69b1055e2a47bb531f77a469";
 
-  const loadPage = useCallback(
-    async (pageToLoad) => {
-      if (!hasMore && pageToLoad !== 1) return;
-      try {
-        setLoadingPage(true);
-        const res = await fetchParties({ page: pageToLoad, limit: 20, cmp_id });
-        const { items, hasMore: newHasMore } = res.data;
-        if (pageToLoad === 1) {
-          setParties(items);
-        } else {
-          setParties((prev) => [...prev, ...items]);
-        }
-        setHasMore(newHasMore);
-      } catch (err) {
-        const msg =
-          err?.response?.data?.message ||
-          err.message ||
-          "Failed to load parties";
-        toast.error(msg);
-      } finally {
-        setLoadingPage(false);
-      }
-    },
-    [cmp_id, hasMore]
-  );
+  const loadParties = async (pageToLoad = 1) => {
+    if (!cmp_id) {
+      toast.error("No active company selected");
+      return;
+    }
+    try {
+      setLoading(true);
+      const res = await fetchParties({
+        page: pageToLoad,
+        limit: 20,
+        cmp_id,
+      });
+      const { items, hasMore: newHasMore } = res.data;
 
-  useEffect(() => {
-    setPage(1);
-    setHasMore(true);
-    loadPage(1);
-  }, [loadPage]);
+      setParties((prev) =>
+        pageToLoad === 1 ? items : [...prev, ...items]
+      );
+      setHasMore(newHasMore);
+      setPage(pageToLoad);
+    } catch (err) {
+      const msg =
+        err?.response?.data?.message ||
+        err.message ||
+        "Failed to load parties";
+      toast.error(msg);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    if (!loaderRef.current) return;
-    const el = loaderRef.current;
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        const first = entries[0];
-        if (first.isIntersecting && hasMore && !loadingPage) {
-          const nextPage = page + 1;
-          setPage(nextPage);
-          loadPage(nextPage);
-        }
-      },
-      { threshold: 1 }
-    );
-
-    observer.observe(el);
-    return () => observer.unobserve(el);
-  }, [page, hasMore, loadingPage, loadPage]);
+    loadParties(1);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleDeleted = (id) => {
     setParties((prev) => prev.filter((p) => p._id !== id));
+  };
+
+  const handleLoadMore = () => {
+    if (hasMore && !loading) {
+      loadParties(page + 1);
+    }
   };
 
   return (
@@ -138,18 +130,37 @@ const PartyListPage = () => {
           </h2>
         </div>
 
+        {loading && parties.length === 0 && (
+          <p className="text-sm text-gray-500">Loading...</p>
+        )}
+
+        {parties.length === 0 && !loading && (
+          <p className="text-sm text-gray-500">No parties found.</p>
+        )}
+
         {parties.map((p) => (
           <PartyCard key={p._id} party={p} onDeleted={handleDeleted} />
         ))}
 
-        <div ref={loaderRef} className="h-8 flex items-center justify-center">
-          {loadingPage && (
-            <p className="text-xs text-gray-500">Loading more...</p>
-          )}
-          {!hasMore && !loadingPage && parties.length > 0 && (
-            <p className="text-xs text-gray-400">No more parties</p>
-          )}
-        </div>
+        {/* Optional: simple Load More button */}
+        {hasMore && parties.length > 0 && (
+          <div className="mt-4 flex justify-center">
+            <button
+              type="button"
+              onClick={handleLoadMore}
+              disabled={loading}
+              className="px-4 py-1.5 rounded-md border border-gray-300 text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-60"
+            >
+              {loading ? "Loading..." : "Load more"}
+            </button>
+          </div>
+        )}
+
+        {!hasMore && parties.length > 0 && (
+          <p className="mt-2 text-center text-xs text-gray-400">
+            No more parties
+          </p>
+        )}
       </div>
     </div>
   );

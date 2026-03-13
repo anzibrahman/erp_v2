@@ -65,7 +65,7 @@ const partySchema = new mongoose.Schema({
   shippingAddress: { type: String },
   creditPeriod: { type: String },
   creditLimit: { type: String },
-  isHotelAgent: { type: Boolean, default: false },
+
 
   // Bank-specific fields (used when partyType = 'Bank')
   acholder_name: { type: String },
@@ -77,7 +77,7 @@ const partySchema = new mongoose.Schema({
   upi_id: { type: String },
   bsr_code: { type: String },
   client_code: { type: String},
-  isTaggedWithComplementary : { type: Boolean, default: false },
+ 
 });
 
 // / ============= CRITICAL PARTY INDEXES =============

@@ -13,6 +13,7 @@ const CompanyRow = ({ company, onDeleted }) => {
   const companyName = company?.name || "Untitled Company";
   const location = [company?.place, company?.state].filter(Boolean).join(", ");
 
+
   const handleEdit = () => {
     navigate(`/company/register?companyId=${company._id}`);
   };

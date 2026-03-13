@@ -87,35 +87,43 @@ export const addParty = async (req, res) => {
 
 export const listParties = async (req, res) => {
   try {
-    const owner = req.user.id;
-    const { cmp_id } = req.query; // or take company from token/context
-    const page = parseInt(req.query.page || "1", 10);
-    const limit = parseInt(req.query.limit || "20", 10);
-    const skip = (page - 1) * limit;
+    const owner = req.user.id; // logged-in primary user
+    const { cmp_id, page = 1, limit = 20 } = req.query;
+
+    if (!cmp_id) {
+      return res
+        .status(400)
+        .json({ message: "cmp_id (company) is required" });
+    }
+
+    const pageNum = parseInt(page) || 1;
+    const limitNum = parseInt(limit) || 20;
+    const skip = (pageNum - 1) * limitNum;
 
     const filter = {
       Primary_user_id: owner,
       cmp_id,
-      partyType: "party",
     };
 
     const [items, total] = await Promise.all([
       Party.find(filter)
         .sort({ createdAt: -1 })
         .skip(skip)
-        .limit(limit),
+        .limit(limitNum),
       Party.countDocuments(filter),
     ]);
 
-    res.json({
+    const hasMore = skip + items.length < total;
+
+    return res.json({
       items,
       total,
-      page,
-      hasMore: skip + items.length < total,
+      page: pageNum,
+      hasMore,
     });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: "Failed to fetch parties" });
+    console.error("listParties error:", err);
+    return res.status(500).json({ message: "Failed to fetch parties" });
   }
 };
 export const getPartyById = async (req, res) => {

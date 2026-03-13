@@ -47,6 +47,17 @@ const MainLayout = () => {
           </NavLink>
 
           <NavLink
+  to="/users/list"
+  className={({ isActive }) =>
+    `${navLinkClass} ${isActive ? activeColor : baseColor}`
+  }
+>
+  <FaUser size={16} />
+  <span>Users</span>
+</NavLink>
+
+
+          <NavLink
             to="/company/register"
             className={({ isActive }) =>
               `${navLinkClass} ${isActive ? activeColor : baseColor}`
@@ -88,6 +99,8 @@ const MainLayout = () => {
             <FaUsers size={16} />
             <span>Parties</span>
           </NavLink>
+
+
 
           {/* add more menu items here later */}
         </nav>
