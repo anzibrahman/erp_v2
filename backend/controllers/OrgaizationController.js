@@ -3,6 +3,22 @@ import mongoose from "mongoose";
 import Company from "../Model/CompanySchema.js";
 import { createDefaultVoucherSeries } from "../Helper/createDefaultVoucherSeries.js";
 
+const escapeRegex = (value) => String(value).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+const findCompanyWithSameName = async ({ owner, name, excludeId }) => {
+  if (!owner || !name) return null;
+
+  const query = {
+    owner,
+    name: new RegExp(`^${escapeRegex(name.trim())}$`, "i"),
+  };
+
+  if (excludeId) {
+    query._id = { $ne: excludeId };
+  }
+
+  return Company.findOne(query);
+};
 
 export const registerCompany = async (req, res) => {
   const {
@@ -22,8 +38,10 @@ export const registerCompany = async (req, res) => {
     pan,
     financialYear,
     type,
+    industry,
     currency,
     currencyName,
+    currencySymbol,
   } = req.body;
 
   const owner = req.user?.id; // from protect middleware
@@ -37,9 +55,13 @@ export const registerCompany = async (req, res) => {
     !email ||
     !mobile ||
     !place ||
-    !financialYear ||
+    !financialYear?.format ||
+    !financialYear?.startingYear ||
+    !financialYear?.startMonth ||
+    !financialYear?.endMonth ||
     !currency ||
-    !currencyName
+    !currencyName ||
+    !currencySymbol
   ) {
     return res
       .status(400)
@@ -50,6 +72,15 @@ export const registerCompany = async (req, res) => {
   session.startTransaction();
 
   try {
+    const existingCompany = await findCompanyWithSameName({ owner, name });
+    if (existingCompany) {
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(409).json({
+        message: "You already have a company with this name",
+      });
+    }
+
     const companies = await Company.create(
       [
         {
@@ -71,6 +102,8 @@ export const registerCompany = async (req, res) => {
           type,
           currency,
           currencyName,
+          currencySymbol,
+          industry,
           owner,
         },
       ],
@@ -137,10 +170,24 @@ export const updateCompany = async (req, res) => {
     const { id } = req.params;
     const body = req.body;
 
+    if (body?.name) {
+      const existingCompany = await findCompanyWithSameName({
+        owner,
+        name: body.name,
+        excludeId: id,
+      });
+
+      if (existingCompany) {
+        return res.status(409).json({
+          message: "You already have a company with this name",
+        });
+      }
+    }
+
     const company = await Company.findOneAndUpdate(
       { _id: id, owner },
       body,
-      { new: true }
+      { new: true, runValidators: true }
     );
 
     if (!company) {
