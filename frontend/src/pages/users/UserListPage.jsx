@@ -1,18 +1,21 @@
 // src/pages/users/UserListPage.jsx
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { FaUser, FaEdit, FaTrash } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
+
 import { deleteUser } from "../../api/client/userApi";
 import { useUserOptionsQuery } from "@/hooks/queries/userQueries";
 import { useDeleteConfirm } from "@/components/common/DeleteConfirmProvider";
+import { useMobileHeader } from "@/components/Layout/HomeLayout";
+import { ROUTES } from "@/routes/paths";
 
 const UserCard = ({ user, onDeleted }) => {
   const navigate = useNavigate();
   const confirmDelete = useDeleteConfirm();
 
   const handleEdit = () => {
-    navigate(`/users/create?userId=${user.id}`);
+    navigate(`${ROUTES.mastersUserRegister}?userId=${user.id}`);
   };
 
   const handleDelete = async () => {
@@ -37,10 +40,9 @@ const UserCard = ({ user, onDeleted }) => {
           <FaUser size={18} />
         </div>
         <div>
-          <h3 className="text-sm font-semibold text-gray-500">
+          <h3 className="text-sm font-semibold text-gray-900">
             {user.userName}
           </h3>
-          
           <p className="text-xs text-gray-500">
             {user.email} • {user.mobileNumber}
           </p>
@@ -71,24 +73,52 @@ const UserCard = ({ user, onDeleted }) => {
 };
 
 const UserListPage = () => {
-  const { data: users = [], isLoading, isError, error } = useUserOptionsQuery();
+  const [searchText, setSearchText] = useState("");
+  const navigate = useNavigate();
+  const { setHeaderOptions, resetHeaderOptions } = useMobileHeader();
+
+ const {
+  data: users = [],
+  isLoading,
+  isError,
+  error,
+} = useUserOptionsQuery(true); // or just useUserOptionsQuery()
+
 
   const handleDeleted = () => {
-    // React Query will refetch or you can use onSuccess invalidate; here
-    // we rely on invalidation from delete mutation if you add it later.
+    // optional: invalidate here if your deleteUser doesn't already do it
   };
 
-  if (isError) {
+  useEffect(() => {
+    setHeaderOptions({
+      showMenuDots: true,
+      menuItems: [
+        {
+          label: "Add User",
+          onSelect: () => navigate(ROUTES.mastersUserRegister),
+        },
+      ],
+      search: {
+        show: true,
+        value: searchText,
+        placeholder: "Search users",
+        onChange: setSearchText,
+      },
+    });
+
+    return () => resetHeaderOptions();
+  }, [navigate, resetHeaderOptions, searchText, setHeaderOptions]);
+
+  useEffect(() => {
+    if (!isError) return;
     toast.error(error?.message || "Failed to load users");
-  }
+  }, [isError, error]);
 
   return (
     <div className="font-[sans-serif] w-full">
       <div className="max-w-3xl mx-auto">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold text-gray-900">
-            Users
-          </h2>
+          <h2 className="text-lg font-semibold text-gray-900">Users</h2>
         </div>
 
         {isLoading && users.length === 0 && (

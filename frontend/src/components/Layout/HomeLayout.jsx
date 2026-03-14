@@ -54,7 +54,11 @@ const mobileTabs = [
     icon: Building2,
     to: ROUTES.mastersCompany,
   },
-  { id: "user", label: "User", icon: CircleUserRound, to: ROUTES.user },
+  { id: "users",
+    label: "Users",
+    icon: CircleUserRound,
+    to: ROUTES.mastersUsers, },
+
   { id: "settings", label: "Settings", icon: Settings, to: ROUTES.settings },
 ];
 
@@ -62,7 +66,8 @@ const routeTitleMap = {
   [ROUTES.home]: "Home",
   [ROUTES.mastersCompany]: "Company",
   [ROUTES.mastersCompanyRegister]: "Company",
-  [ROUTES.user]: "User",
+  [ROUTES.mastersUsers]: "Users",          // list page
+  [ROUTES.mastersUserRegister]: "User",    // create/edit page
   [ROUTES.settings]: "Settings",
   [ROUTES.mastersCustomers]: "Customers",
   [ROUTES.mastersProducts]: "Products",
@@ -704,14 +709,15 @@ function MobileBottomBar() {
   );
 }
 
-function MobileShell({ selectedCompany, onCompanyClick }) {
+function MobileShell({ selectedCompany, onCompanyClick, hasCompany,
+  isCheckingCompanies, }) {
   const { pathname } = useLocation();
   const { headerOptionsByPath } = useMobileHeaderContext();
   const isHome = isHomePath(pathname);
   const title = getPageTitle(pathname);
   const headerOptions =
     headerOptionsByPath[pathname] ?? DEFAULT_MOBILE_HEADER_OPTIONS;
-
+ const isCompanyRegister = pathname === ROUTES.mastersCompanyRegister;
   return (
     <div className="min-h-screen bg-slate-50 md:hidden">
       <div className="mx-auto min-h-screen w-full max-w-md bg-white shadow-sm">
@@ -720,9 +726,14 @@ function MobileShell({ selectedCompany, onCompanyClick }) {
           title={title}
           headerOptions={headerOptions}
         />
-
-        <main className="pb-[104px]">
-          {isHome ? (
+ <main className="pb-[104px]">
+          {isCheckingCompanies ? (
+            <div className="flex min-h-[calc(100vh-104px)] items-center justify-center">
+              <p className="text-sm text-slate-500">Checking your companies...</p>
+            </div>
+          ) : !hasCompany && !isCompanyRegister ? (
+            <NoCompanyScreen />
+          ) : isHome ? (
             <>
               <MobileWalletCard
                 headerOptions={headerOptions}
@@ -740,18 +751,23 @@ function MobileShell({ selectedCompany, onCompanyClick }) {
           )}
         </main>
 
+
+
         <MobileBottomBar />
       </div>
     </div>
   );
 }
 
-function DesktopShell({ selectedCompany, onCompanyClick }) {
+function DesktopShell({  selectedCompany,
+  onCompanyClick,
+  hasCompany,
+  isCheckingCompanies,  }) {
   const { pathname } = useLocation();
   const user = useSelector((state) => state.auth.user);
   const displayName = getUserDisplayName(user);
   const initials = getInitials(displayName);
-
+  const isCompanyRegister = pathname === ROUTES.mastersCompanyRegister;
   return (
     <div className="hidden h-screen bg-white md:flex">
       <aside className="flex w-64 flex-col border-r bg-white">
@@ -804,8 +820,14 @@ function DesktopShell({ selectedCompany, onCompanyClick }) {
           </Avatar>
         </header>
 
-        <main className="flex-1 overflow-y-auto p-6">
-          {pathname === ROUTES.home ? (
+     <main className="flex-1 overflow-y-auto p-6">
+          {isCheckingCompanies ? (
+            <div className="flex h-full items-center justify-center">
+              <p className="text-sm text-slate-500">Checking your companies...</p>
+            </div>
+          ) : !hasCompany && !isCompanyRegister ? (
+            <NoCompanyScreen />
+          ) : pathname === ROUTES.home ? (
             <>
               <div className="max-w-md">
                 <MobileWalletCard
@@ -821,10 +843,38 @@ function DesktopShell({ selectedCompany, onCompanyClick }) {
             <Outlet />
           )}
         </main>
+
       </div>
     </div>
   );
 }
+function NoCompanyScreen() {
+  const navigate = useNavigate();
+
+  return (
+    <div className="flex min-h-[calc(100vh-104px)] items-center justify-center bg-white px-4">
+      <div className="max-w-xs text-center">
+        <p className="text-sm font-semibold text-slate-900">
+          You don&apos;t have any company yet
+        </p>
+        <p className="mt-2 text-xs text-slate-500">
+          Please create a company to start using the dashboard.
+        </p>
+        <button
+          type="button"
+          onClick={() => navigate(ROUTES.mastersCompanyRegister)}
+          className="mt-4 inline-flex items-center justify-center rounded-md bg-blue-600 px-4 py-2 text-xs font-semibold text-white"
+        >
+          Create company
+        </button>
+      </div>
+    </div>
+  );
+}
+
+
+
+
 
 export default function HomeLayout() {
   const dispatch = useDispatch();
@@ -842,6 +892,8 @@ export default function HomeLayout() {
 
   const { data: companies = [], isLoading: isCompaniesLoading } =
     useCompanyOptionsQuery(companiesEnabled);
+    const hasCompany = companies.length > 0;
+
 
   const effectiveSelectedCompanyId = useMemo(() => {
     if (!companies.length) return null;
@@ -971,28 +1023,35 @@ export default function HomeLayout() {
     [headerOptionsByPath, resetHeaderOptionsForPath, setHeaderOptionsForPath],
   );
 
-  return (
-    <MobileHeaderContext.Provider value={mobileHeaderContextValue}>
-      <DesktopShell
-        selectedCompany={selectedCompanyForUi}
-        onCompanyClick={openCompanyDrawer}
-      />
-      <MobileShell
-        selectedCompany={selectedCompanyForUi}
-        onCompanyClick={openCompanyDrawer}
-      />
-      <CompanyDrawer
-        open={isCompanyDrawerOpen}
-        selectedCompany={selectedCompanyForUi}
-        companies={companies}
-        loading={isCompaniesLoading}
-        onClose={closeCompanyDrawer}
-        onSelectCompany={handleSelectCompany}
-      />
-      <CompanySwitchOverlay
-        open={Boolean(switchingCompanyId)}
-        companyName={switchingCompanyName}
-      />
-    </MobileHeaderContext.Provider>
-  );
+ return (
+ 
+  <MobileHeaderContext.Provider value={mobileHeaderContextValue}>
+    <DesktopShell
+      selectedCompany={selectedCompanyForUi}
+      onCompanyClick={openCompanyDrawer}
+      hasCompany={hasCompany}
+      isCheckingCompanies={isCompaniesLoading && companiesEnabled}
+    />
+    <MobileShell
+      selectedCompany={selectedCompanyForUi}
+      onCompanyClick={openCompanyDrawer}
+      hasCompany={hasCompany}
+      isCheckingCompanies={isCompaniesLoading && companiesEnabled}
+    />
+    <CompanyDrawer
+      open={isCompanyDrawerOpen}
+      selectedCompany={selectedCompanyForUi}
+      companies={companies}
+      loading={isCompaniesLoading}
+      onClose={closeCompanyDrawer}
+      onSelectCompany={handleSelectCompany}
+    />
+    <CompanySwitchOverlay
+      open={Boolean(switchingCompanyId)}
+      companyName={switchingCompanyName}
+    />
+  </MobileHeaderContext.Provider>
+);
+
+
 }

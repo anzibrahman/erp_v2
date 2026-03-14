@@ -3,6 +3,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Pencil, Trash2, Users } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
+import { useSelector } from "react-redux";
 
 import { useDeleteConfirm } from "@/components/common/DeleteConfirmProvider";
 import { useMobileHeader } from "@/components/Layout/HomeLayout";
@@ -65,7 +66,8 @@ export default function PartyListPage() {
   const queryClient = useQueryClient();
   const confirmDelete = useDeleteConfirm();
   const { setHeaderOptions, resetHeaderOptions } = useMobileHeader();
-  const cmpId = localStorage.getItem("activeCompanyId") || "";
+const cmpId = useSelector((state) => state.company.selectedCompanyId) || "";
+
   const debouncedSearchText = useDebouncedValue(searchText.trim(), 500);
   const isCustomersRoute = location.pathname === ROUTES.mastersCustomers;
   const pageLabel = isCustomersRoute ? "Customers" : "Parties";

@@ -3,9 +3,7 @@ import User from "../Model/UserSchema.js";
 
 export const createStaffUser = async (req, res) => {
   try {
-    // req.user is the logged-in admin (set by auth middleware)
-    const ownerId = req.user.id;
-
+    const ownerId = req.user.id; // logged-in user making the request
     const { userName, email, mobileNumber, password, role, companyId } =
       req.body;
 
@@ -15,7 +13,7 @@ export const createStaffUser = async (req, res) => {
         .json({ message: "All required fields must be provided" });
     }
 
-    // ensure only admins can create staff
+    // only admins can create users (admin or staff)
     if (req.user.role !== "admin") {
       return res.status(403).json({ message: "Only admin can create users" });
     }
@@ -30,15 +28,24 @@ export const createStaffUser = async (req, res) => {
         .json({ message: "Email or mobile already registered" });
     }
 
+    const isAdminBeingCreated = role === "admin";
+
     const newUser = await User.create({
       userName: userName.trim(),
       email: email.trim(),
       mobileNumber: mobileNumber.trim(),
       password,
-      role: role || "staff", // use "staff" by default
-      owner: ownerId,
+      role: role || "staff",
+      // if creating an admin, owner is itself; if creating staff, owner is the current admin
+      owner: isAdminBeingCreated ? undefined : ownerId,
       company: companyId || null,
     });
+
+    // if you want admin’s owner to be its own id, update after create:
+    if (isAdminBeingCreated && !newUser.owner) {
+      newUser.owner = newUser._id;
+      await newUser.save();
+    }
 
     const userObj = newUser.toObject();
     delete userObj.password;
@@ -52,6 +59,7 @@ export const createStaffUser = async (req, res) => {
     return res.status(500).json({ message: "Internal server error" });
   }
 };
+
 
 
 

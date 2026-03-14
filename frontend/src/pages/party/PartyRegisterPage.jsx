@@ -6,6 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import { Users } from "lucide-react";
 import { useNavigate, useSearchParams } from "react-router-dom";
+import { useSelector } from "react-redux";
 
 import { fetchAccountGroups } from "../../api/client/accountGroupApi";
 import { fetchSubGroups } from "../../api/client/subGroupApi";
@@ -28,7 +29,9 @@ const optionalBalanceType = z.preprocess(
 const schema = z.object({
   partyName: z.string().min(1, "Party name is required"),
   partyType: z.enum(["party", "bank", "cash"]).optional(),
-  accountGroup: optionalString,
+  accountGroup: z
+    .string()
+    .min(1, "Account group is required"), 
   subGroup: optionalString,
   mobileNumber: z.string().min(1, "Mobile number is required"),
   emailID: z.string().email("Invalid email").optional().or(z.literal("")),
@@ -60,7 +63,8 @@ export default function PartyRegisterPage() {
   const queryClient = useQueryClient();
   const [accountGroups, setAccountGroups] = useState([]);
   const [subGroups, setSubGroups] = useState([]);
-  const cmpId = localStorage.getItem("activeCompanyId") || "";
+const cmpId = useSelector((state) => state.company.selectedCompanyId) || "";
+
 
   const {
     register,
@@ -166,12 +170,14 @@ export default function PartyRegisterPage() {
 
   useEffect(() => {
     if (!party) return;
-
+ if (!accountGroups.length) return;
     reset({
       partyName: party.partyName || "",
       partyType: party.partyType || "party",
       accountGroup:
-        party.accountGroup?._id || party.accountGroup?.id || party.accountGroup || "",
+      party.accountGroup?._id ||
+      party.accountGroup?.id ||
+      party.accountGroup || "",
       subGroup: party.subGroup?._id || party.subGroup?.id || party.subGroup || "",
       mobileNumber: party.mobileNumber || "",
       emailID: party.emailID || "",
@@ -190,7 +196,7 @@ export default function PartyRegisterPage() {
       state: party.state || "",
       pin: party.pin || "",
     });
-  }, [party, reset]);
+  }, [party,accountGroups, reset]);
 
   const selectedAccountGroupLabel = useMemo(() => {
     return (
@@ -323,16 +329,20 @@ export default function PartyRegisterPage() {
 
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 <div>
-                  <label className={labelClass}>Account Group</label>
-                  <select className={inputClass} {...register("accountGroup")}>
-                    <option value="">Use default account group</option>
-                    {accountGroups.map((group) => (
-                      <option key={group._id} value={group._id}>
-                        {group.accountGroup}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+  <label className={labelClass}>Account Group</label>
+  <select className={inputClass} {...register("accountGroup")}>
+    <option value="">Select account group</option>
+    {accountGroups.map((group) => (
+      <option key={group._id} value={group._id}>
+        {group.accountGroup}
+      </option>
+    ))}
+  </select>
+  {errors.accountGroup && (
+    <p className={errorClass}>{errors.accountGroup.message}</p>
+  )}
+</div>
+
 
                 <div>
                   <label className={labelClass}>Sub Group</label>
