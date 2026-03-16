@@ -13,6 +13,14 @@ import { updateUser } from "../../api/client/userApi";
 import { useUserByIdQuery } from "@/hooks/queries/userQueries";
 import { ROUTES } from "@/routes/paths";
 
+const passwordSchema = z
+  .string()
+  .min(8, "Min 8 characters")
+  .regex(
+    /(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])/,
+    "Password must contain upper, lower, number & special char"
+  );
+
 const schema = z.object({
   userName: z.string().min(1, "Name is required"),
   email: z.string().email("Invalid email"),
@@ -20,16 +28,10 @@ const schema = z.object({
     .string()
     .min(7, "Mobile is required")
     .regex(/^\d+$/, "Mobile must be digits"),
-  password: z
-    .string()
-    .min(8, "Min 8 characters")
-    .regex(
-      /(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])/,
-      "Password must contain upper, lower, number & special char"
-    )
-    .optional(),
-  role: z.enum(["admin", "staff"]).default("staff"),
+  // allow "" or a valid password
+  password: z.union([z.literal(""), passwordSchema]).optional(),
 });
+
 
 const UserCreatePage = () => {
   const [showPassword, setShowPassword] = useState(false);
@@ -71,43 +73,59 @@ const UserCreatePage = () => {
       userName: user.userName || "",
       email: user.email || "",
       mobileNumber: user.mobileNumber || "",
-      role: user.role || "staff",
+      // role: user.role || "staff",
     });
   }, [user, reset]);
 
-  const onSubmit = async (values) => {
-    try {
-      setSaving(true);
+ const onSubmit = async (values) => {
+  try {
+    setSaving(true);
 
-      const payload = {
-        userName: values.userName.trim(),
-        email: values.email.trim(),
-        mobileNumber: values.mobileNumber.trim(),
-        role: values.role,
-      };
+    const payload = {
+      userName: values.userName.trim(),
+      email: values.email.trim(),
+      mobileNumber: values.mobileNumber.trim(),
+    };
 
-      if (!isEdit || values.password) {
-        payload.password = values.password;
+    const hasNewPassword =
+      typeof values.password === "string" && values.password.trim().length > 0;
+
+    // create: require password; edit: only include if user typed new one
+    if (!isEdit) {
+      if (!hasNewPassword) {
+        toast.error("Password is required for new user");
+        setSaving(false);
+        return;
       }
-
-      if (isEdit) {
-        const res = await updateUser(userId, payload);
-        toast.success(res.data.message || "User updated successfully");
-      } else {
-        const res = await api.post("/users/staff", payload);
-        toast.success(res.data.message || "User created successfully");
-        reset({ role: "staff" });
-      }
-
-      navigate(ROUTES.usersList);
-    } catch (err) {
-      const msg =
-        err?.response?.data?.message || err.message || "User save failed";
-      toast.error(msg);
-    } finally {
-      setSaving(false);
+      payload.password = values.password.trim();
+    } else if (hasNewPassword) {
+      payload.password = values.password.trim();
     }
-  };
+
+    if (isEdit) {
+      const res = await updateUser(userId, payload);
+      toast.success(res.data.message || "User updated successfully");
+    } else {
+      const res = await api.post("/users/staff", payload);
+      toast.success(res.data.message || "User created successfully");
+      reset({
+        userName: "",
+        email: "",
+        mobileNumber: "",
+        password: "",
+      });
+    }
+
+    navigate(ROUTES.mastersUsers);
+  } catch (err) {
+    const msg =
+      err?.response?.data?.message || err.message || "User save failed";
+    toast.error(msg);
+  } finally {
+    setSaving(false);
+  }
+};
+
 
   return (
     <div className="font-[sans-serif]">
@@ -229,7 +247,7 @@ const UserCreatePage = () => {
             </div>
 
             {/* Role */}
-            <div>
+            {/* <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Role
               </label>
@@ -240,7 +258,7 @@ const UserCreatePage = () => {
                 <option value="staff">Staff</option>
                 <option value="admin">Admin</option>
               </select>
-            </div>
+            </div> */}
 
             {/* Submit */}
             <div className="pt-2 flex justify-end">

@@ -32,6 +32,8 @@ const UserCard = ({ user, onDeleted }) => {
       toast.error(msg);
     }
   };
+console.log(user)
+
 
   return (
     <div className="bg-white shadow-sm rounded-lg p-4 flex items-center justify-between mb-3 w-full">
@@ -41,7 +43,7 @@ const UserCard = ({ user, onDeleted }) => {
         </div>
         <div>
           <h3 className="text-sm font-semibold text-gray-900">
-            {user.userName}
+            {user.name}
           </h3>
           <p className="text-xs text-gray-500">
             {user.email} • {user.mobileNumber}
@@ -114,6 +116,17 @@ const UserListPage = () => {
     toast.error(error?.message || "Failed to load users");
   }, [isError, error]);
 
+
+  const filteredUsers = users.filter((u) => {
+  const q = searchText.trim().toLowerCase();
+  if (!q) return true;
+  return (
+    u.name?.toLowerCase().includes(q) ||
+    u.email?.toLowerCase().includes(q) ||
+    (u.mobileNumber || "").toLowerCase().includes(q) ||
+    (u.role || "").toLowerCase().includes(q)
+  );
+});
   return (
     <div className="font-[sans-serif] w-full">
       <div className="max-w-3xl mx-auto">
@@ -125,11 +138,11 @@ const UserListPage = () => {
           <p className="text-sm text-gray-500">Loading...</p>
         )}
 
-        {!isLoading && users.length === 0 && (
+        {!isLoading && filteredUsers.length === 0 && (
           <p className="text-sm text-gray-500">No users found.</p>
         )}
 
-        {users.map((u) => (
+        {filteredUsers.map((u) => (
           <UserCard key={u.id} user={u} onDeleted={handleDeleted} />
         ))}
       </div>
