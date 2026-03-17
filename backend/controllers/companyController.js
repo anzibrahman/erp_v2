@@ -1,7 +1,7 @@
 // controllers/companyController.js
 import mongoose from "mongoose";
 import Company from "../Model/CompanySchema.js";
-import { createDefaultVoucherSeries } from "../Helper/createDefaultVoucherSeries.js";
+import { createDefaultVoucherSeries } from "../helpers/createDefaultVoucherSeries.js";
 
 const escapeRegex = (value) =>
   String(value).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
