@@ -1,258 +1,416 @@
+import mongoose from "mongoose";
 import { getApiLogs } from "../../utils/logs.js";
 import { buildBulkResponse } from "../../helpers/tallyDataHelpers.js";
 import productModel from "../../Model/ProductSchema.js";
-import { Brand, Category, Subcategory } from "../../Model/ProductSubDetails.js";
-import { Godown } from "../../Model/ProductSubDetails.js";
-
+import {
+  Brand,
+  Category,
+  Subcategory,
+  Godown,
+} from "../../Model/ProductSubDetails.js";
+import PriceLevel from "../../Model/PriceLevel.js";
 
 // @desc Save products from Tally (base data only, with default godown)
 // @route POST /api/tally/giveTransaction
-export const addProducts= async (req, res) => {
+export const addProducts = async (req, res) => {
   try {
     const productsToSave = req?.body?.data;
 
+    // 1) Basic validation for body
     if (!Array.isArray(productsToSave) || productsToSave.length === 0) {
-      return res.status(400).json({ message: "No products to save" });
+      const responsePayload = buildBulkResponse({
+        entityName: "Products",
+        totalReceived: 0,
+        insertedCount: 0,
+        updatedCount: 0,
+        skippedItems: [],
+      });
+
+      return res.status(400).json(responsePayload);
     }
 
-    // basic result structure for buildBulkResponse
     const results = {
-      success: [],
-      failure: [],
-      skipped: [],
+      success: [], // { id, operation }
+      skipped: [], // { item, reason, data }
     };
 
+    // 2) Validate each product for required fields + duplicate in request
     const validProducts = [];
+    const uniqueProducts = new Map();
 
-    // 1) Validate input & build validProducts
-    for (const product of productsToSave) {
-      if (
-        !product.product_master_id ||
-        !product.cmp_id ||
-        !product.Primary_user_id ||
-        !product.product_name
-      ) {
+    for (let i = 0; i < productsToSave.length; i++) {
+      const product = productsToSave[i];
+      const itemIndex = i + 1;
+
+      const rawCmpId = product?.cmp_id || null;
+      const rawPrimaryUserId = product?.Primary_user_id || null;
+      const rawProductMasterId = product?.product_master_id || null;
+
+      const key = `${rawCmpId}-${rawProductMasterId}`;
+
+      // 2.a Avoid duplicates in same request
+      if (uniqueProducts.has(key)) {
         results.skipped.push({
-          id: product.product_master_id || "unknown",
-          name: product.product_name || "unnamed",
-          reason: !product.cmp_id
-            ? "Missing cmp_id"
-            : !product.Primary_user_id
-            ? "Missing Primary_user_id"
-            : !product.product_master_id
-            ? "Missing product_master_id"
-            : "Missing product_name",
+          item: itemIndex,
+          reason: "Duplicate in request",
+          data: {
+            product_master_id: rawProductMasterId,
+            product_name: product?.product_name || null,
+          },
+        });
+        continue;
+      }
+      uniqueProducts.set(key, true);
+
+      // 2.b Required fields
+      const missingFields = [];
+      if (!rawCmpId) missingFields.push("cmp_id");
+      if (!rawPrimaryUserId) missingFields.push("Primary_user_id");
+      if (!rawProductMasterId) missingFields.push("product_master_id");
+      if (!product?.product_name) missingFields.push("product_name");
+
+      if (missingFields.length > 0) {
+        results.skipped.push({
+          item: itemIndex,
+          reason: `Missing required fields: ${missingFields.join(", ")}`,
+          data: {
+            product_master_id: rawProductMasterId,
+            product_name: product?.product_name || null,
+          },
         });
         continue;
       }
 
-      validProducts.push(product);
+      validProducts.push({ product, itemIndex });
     }
 
     if (validProducts.length === 0) {
       const responsePayload = buildBulkResponse({
-        message: "No valid products to process",
-        success: results.success,
-        failure: results.failure,
-        skipped: results.skipped,
-        total: productsToSave.length,
+        entityName: "Products",
+        totalReceived: productsToSave.length,
+        insertedCount: 0,
+        updatedCount: 0,
+        skippedItems: results.skipped,
       });
 
       return res.status(200).json(responsePayload);
     }
 
-    const cmp_id = validProducts[0].cmp_id;
-    const Primary_user_id = validProducts[0].Primary_user_id;
+    // From first valid product (all same cmp_id & Primary_user_id)
+    const sample = validProducts[0].product;
+    const rawCmpId = sample.cmp_id;
+    const rawPrimaryUserId = sample.Primary_user_id;
 
-    getApiLogs(cmp_id, "Product Data(base)");
+    let cmpObjectId = rawCmpId;
+    if (typeof rawCmpId === "string") {
+      cmpObjectId = new mongoose.Types.ObjectId(rawCmpId);
+    }
 
-    // 2) Ensure default godown exists (no auto-create)
+    let primaryUserObjectId = rawPrimaryUserId;
+    if (typeof rawPrimaryUserId === "string") {
+      primaryUserObjectId = new mongoose.Types.ObjectId(rawPrimaryUserId);
+    }
+
+    getApiLogs(cmpObjectId, "Product Data(base)");
+
+    // 3) Ensure default godown exists
     const defaultGodown = await Godown.findOne({
-      cmp_id,
+      cmp_id: cmpObjectId,
       defaultGodown: true,
     });
 
     if (!defaultGodown) {
-      return res.status(400).json({
-        message:
-          "Default godown not found. Please set up a default godown before saving products.",
+      const godownErrorReason = "Processing error: Default godown not found";
+      for (const vp of validProducts) {
+        const { product, itemIndex } = vp;
+        results.skipped.push({
+          item: itemIndex,
+          reason: godownErrorReason,
+          data: {
+            product_master_id: product.product_master_id,
+            product_name: product.product_name,
+          },
+        });
+      }
+
+      const responsePayload = buildBulkResponse({
+        entityName: "Products",
+        totalReceived: productsToSave.length,
+        insertedCount: 0,
+        updatedCount: 0,
+        skippedItems: results.skipped,
       });
+
+      return res.status(400).json(responsePayload);
     }
 
-    // 3) Collect unique reference ids
-    const brandIdMap = {};
-    const categoryIdMap = {};
-    const subcategoryIdMap = {};
-    const existingProductIds = [];
+    // 4) Collect unique reference ids from valid products only
+    const brandIds = new Set();
+    const categoryIds = new Set();
+    const subcategoryIds = new Set();
+    const priceLevelIds = new Set(); // PL-RETAIL, PL-WHOLESALE etc
+    const productMasterIds = [];
 
-    for (const product of validProducts) {
-      if (product.brand_id) brandIdMap[product.brand_id] = true;
-      if (product.category_id) categoryIdMap[product.category_id] = true;
-      if (product.subcategory_id) subcategoryIdMap[product.subcategory_id] = true;
-      existingProductIds.push(product.product_master_id);
+    for (const { product } of validProducts) {
+      if (product?.brand_id) brandIds.add(product.brand_id);
+      if (product?.category_id) categoryIds.add(product.category_id);
+      if (product?.subcategory_id) subcategoryIds.add(product.subcategory_id);
+      if (Array.isArray(product?.priceLevels)) {
+        for (const pl of product.priceLevels) {
+          if (pl?.priceLevel) priceLevelIds.add(pl.priceLevel);
+        }
+      }
+      if (product?.product_master_id)
+        productMasterIds.push(product.product_master_id);
     }
 
-    const brandIds = Object.keys(brandIdMap);
-    const categoryIds = Object.keys(categoryIdMap);
-    const subcategoryIds = Object.keys(subcategoryIdMap);
+    // 5) Fetch reference data in one go, scoped by single cmp_id + Primary_user_id
+    const [
+      brandDocs,
+      categoryDocs,
+      subcategoryDocs,
+      priceLevelDocs,
+      existingProducts,
+    ] = await Promise.all([
+      Brand.find({
+        cmp_id: cmpObjectId,
+        Primary_user_id: primaryUserObjectId,
+        brand_id: { $in: [...brandIds] },
+      }).lean(),
+      Category.find({
+        cmp_id: cmpObjectId,
+        Primary_user_id: primaryUserObjectId,
+        category_id: { $in: [...categoryIds] },
+      }).lean(),
+      Subcategory.find({
+        cmp_id: cmpObjectId,
+        Primary_user_id: primaryUserObjectId,
+        subcategory_id: { $in: [...subcategoryIds] },
+      }).lean(),
+      PriceLevel.find({
+        cmp_id: cmpObjectId,
+        Primary_user_id: primaryUserObjectId,
+        pricelevel_id: { $in: [...priceLevelIds] }, // e.g. PL-RETAIL
+      }).lean(),
+      productModel.find({
+        product_master_id: { $in: productMasterIds },
+        cmp_id: cmpObjectId,
+        Primary_user_id: primaryUserObjectId,
+      }),
+    ]);
 
-    // 4) Fetch reference data and existing products in parallel
-    const [brands, categories, subcategories, existingProducts] =
-      await Promise.all([
-        brandIds.length
-          ? Brand.find({ brand_id: { $in: brandIds }, cmp_id })
-          : [],
-        categoryIds.length
-          ? Category.find({ category_id: { $in: categoryIds }, cmp_id })
-          : [],
-        subcategoryIds.length
-          ? Subcategory.find({
-              subcategory_id: { $in: subcategoryIds },
-              cmp_id,
-            })
-          : [],
-        productModel.find({
-          product_master_id: { $in: existingProductIds },
-          cmp_id,
-          Primary_user_id,
-        }),
-      ]);
+    // 6) Build maps for fast lookup (keyed just by id, since cmp/user fixed)
+    const brandMap = new Map();
+    for (const b of brandDocs) {
+      brandMap.set(b.brand_id, b._id);
+    }
 
-    // 5) Build lookup maps
-    const brandMap = {};
-    const categoryMap = {};
-    const subcategoryMap = {};
+    const categoryMap = new Map();
+    for (const c of categoryDocs) {
+      categoryMap.set(c.category_id, c._id);
+    }
+
+    const subcategoryMap = new Map();
+    for (const s of subcategoryDocs) {
+      subcategoryMap.set(s.subcategory_id, s._id);
+    }
+
+    const priceLevelMap = new Map();
+    for (const pl of priceLevelDocs) {
+      priceLevelMap.set(pl.pricelevel_id, pl._id);
+    }
+
     const existingProductMap = {};
-
-    brands.forEach((b) => {
-      brandMap[b.brand_id] = b._id;
-    });
-
-    categories.forEach((c) => {
-      categoryMap[c.category_id] = c._id;
-    });
-
-    subcategories.forEach((s) => {
-      subcategoryMap[s.subcategory_id] = s._id;
-    });
-
     existingProducts.forEach((p) => {
       existingProductMap[p.product_master_id] = p;
     });
 
-    // 6) Prepare operations array for batch create/update
-    const operations = [];
+    // 7) Build operations array, skipping when brand/category/subcategory/priceLevel not found
+    const ops = [];
     const BATCH_SIZE = 200;
 
-    for (const product of validProducts) {
-      const enhancedProduct = { ...product };
+    for (const vp of validProducts) {
+      const { product, itemIndex } = vp;
 
-      enhancedProduct.brand =
-        product.brand_id && brandMap[product.brand_id]
-          ? brandMap[product.brand_id]
-          : null;
+      // 7.a Resolve brand (optional, but if provided must exist)
+      let brandObjectId = null;
+      if (product.brand_id) {
+        brandObjectId = brandMap.get(product.brand_id) || null;
 
-      enhancedProduct.category =
-        product.category_id && categoryMap[product.category_id]
-          ? categoryMap[product.category_id]
-          : null;
+        if (!brandObjectId) {
+          results.skipped.push({
+            item: itemIndex,
+            reason: `Brand not found with ID: ${product.brand_id}`,
+            data: {
+              product_master_id: product.product_master_id,
+              product_name: product.product_name || null,
+              brand_id: product.brand_id,
+            },
+          });
+          continue;
+        }
+      }
 
-      enhancedProduct.sub_category =
-        product.subcategory_id && subcategoryMap[product.subcategory_id]
-          ? subcategoryMap[product.subcategory_id]
-          : null;
+      // 7.b Resolve category (optional, but if provided must exist)
+      let categoryObjectId = null;
+      if (product.category_id) {
+        categoryObjectId = categoryMap.get(product.category_id) || null;
 
-      // Attach default godown as initial GodownList
-      enhancedProduct.GodownList = [
-        {
-          godown: defaultGodown._id,
-          batch: "Primary Batch",
-          balance_stock: 0,
-        },
-      ];
+        if (!categoryObjectId) {
+          results.skipped.push({
+            item: itemIndex,
+            reason: `Category not found with ID: ${product.category_id}`,
+            data: {
+              product_master_id: product.product_master_id,
+              product_name: product.product_name || null,
+              category_id: product.category_id,
+            },
+          });
+          continue;
+        }
+      }
+
+      // 7.c Resolve subcategory (optional, but if provided must exist)
+      let subcategoryObjectId = null;
+      if (product.subcategory_id) {
+        subcategoryObjectId =
+          subcategoryMap.get(product.subcategory_id) || null;
+
+        if (!subcategoryObjectId) {
+          results.skipped.push({
+            item: itemIndex,
+            reason: `Subcategory not found with ID: ${product.subcategory_id}`,
+            data: {
+              product_master_id: product.product_master_id,
+              product_name: product.product_name || null,
+              subcategory_id: product.subcategory_id,
+            },
+          });
+          continue;
+        }
+      }
+
+      // 7.d Resolve priceLevels (each priceLevel.id must exist if provided)
+      let resolvedPriceLevels = [];
+      if (Array.isArray(product.priceLevels) && product.priceLevels.length > 0) {
+        let priceLevelResolutionFailed = false;
+
+        for (const pl of product.priceLevels) {
+          if (!pl?.priceLevel) continue; // if no id, ignore that entry
+
+          const plObjectId = priceLevelMap.get(pl.priceLevel) || null;
+
+          if (!plObjectId) {
+            results.skipped.push({
+              item: itemIndex,
+              reason: `Price level not found with ID: ${pl.priceLevel}`,
+              data: {
+                product_master_id: product.product_master_id,
+                product_name: product.product_name || null,
+                priceLevel_id: pl.priceLevel,
+              },
+            });
+            priceLevelResolutionFailed = true;
+            break;
+          }
+
+          resolvedPriceLevels.push({
+            priceLevel: plObjectId,
+            priceRate: pl.priceRate,
+            priceDisc: pl.priceDisc,
+            applicabledt: pl.applicabledt,
+          });
+        }
+
+        if (priceLevelResolutionFailed) {
+          // Skip entire product if any priceLevel mapping fails
+          continue;
+        }
+      }
+
+      // 7.e Build enhanced product document
+      const enhancedProduct = {
+        ...product,
+        cmp_id: cmpObjectId,
+        Primary_user_id: primaryUserObjectId,
+        brand: brandObjectId,
+        category: categoryObjectId,
+        sub_category: subcategoryObjectId,
+        priceLevels: resolvedPriceLevels.length ? resolvedPriceLevels : [],
+        GodownList: [
+          {
+            godown: defaultGodown._id,
+            batch: "Primary Batch",
+            balance_stock: 0,
+          },
+        ],
+      };
 
       const existingProduct = existingProductMap[product.product_master_id];
 
       if (existingProduct) {
-        operations.push({
-          type: "update",
-          id: existingProduct._id,
-          product: enhancedProduct,
+        ops.push({
+          updateOne: {
+            filter: {
+              _id: existingProduct._id,
+            },
+            update: {
+              $set: enhancedProduct,
+            },
+            upsert: false,
+          },
         });
       } else {
-        operations.push({
-          type: "create",
-          product: enhancedProduct,
+        ops.push({
+          insertOne: {
+            document: enhancedProduct,
+          },
         });
       }
     }
 
-    // 7) Execute operations in batches
-    for (let i = 0; i < operations.length; i += BATCH_SIZE) {
-      const batchOps = operations.slice(i, i + BATCH_SIZE);
+    // 8) Execute in batches
+    let insertedCount = 0;
+    let updatedCount = 0;
 
-      const batchPromises = batchOps.map((op) => {
-        if (op.type === "update") {
-          return productModel
-            .findByIdAndUpdate(op.id, op.product, { new: true })
-            .then((result) => ({
-              success: true,
-              result,
-              operation: "updated",
-            }))
-            .catch((error) => ({
-              success: false,
-              error: error.message,
-              productId: op.product.product_master_id,
-            }));
-        }
+    for (let i = 0; i < ops.length; i += BATCH_SIZE) {
+      const batch = ops.slice(i, i + BATCH_SIZE);
 
-        return new productModel(op.product)
-          .save()
-          .then((result) => ({
-            success: true,
-            result,
-            operation: "created",
-          }))
-          .catch((error) => ({
-            success: false,
-            error: error.message,
-            productId: op.product.product_master_id,
-          }));
-      });
+      try {
+        const bulkResult = await productModel.bulkWrite(batch, {
+          ordered: false,
+        });
 
-      const batchResults = await Promise.all(batchPromises);
+        insertedCount += bulkResult.insertedCount || 0;
+        updatedCount += bulkResult.modifiedCount || 0;
+      } catch (bulkError) {
+        console.error("Error in product bulkWrite:", bulkError);
 
-      for (const r of batchResults) {
-        if (r.success) {
-          results.success.push({
-            id: r.result.product_master_id,
-            operation: r.operation,
-          });
-        } else {
-          results.failure.push({
-            id: r.productId,
-            error: r.error,
-          });
-        }
+        results.skipped.push({
+          item: null,
+          reason: `Processing error: ${bulkError.message}`,
+          data: {},
+        });
       }
     }
 
+    // 9) Build final response via buildBulkResponse
     const responsePayload = buildBulkResponse({
-      message: "Products processing completed",
-      success: results.success,
-      failure: results.failure,
-      skipped: results.skipped,
-      total: productsToSave.length,
+      entityName: "Products",
+      totalReceived: productsToSave.length,
+      insertedCount,
+      updatedCount,
+      skippedItems: results.skipped,
     });
 
     return res.status(201).json(responsePayload);
   } catch (error) {
-    console.error("Error in saveProductsFromTally:", error);
+    console.error("Error in addProducts:", error);
 
     return res.status(500).json({
-      error: "Internal server error",
-      message: error.message,
+      status: "failure",
+      message: "Internal server error",
+      error: error.message,
     });
   }
 };

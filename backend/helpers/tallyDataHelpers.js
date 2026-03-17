@@ -7,6 +7,14 @@ export const buildBulkResponse = ({
   updatedCount,
   skippedItems,
 }) => {
+  console.log({
+    entityName,
+    totalReceived,
+    insertedCount,
+    updatedCount,
+    skippedItems,
+  });
+
   const successCount = insertedCount + updatedCount;
   const skippedCount = skippedItems.length;
 
