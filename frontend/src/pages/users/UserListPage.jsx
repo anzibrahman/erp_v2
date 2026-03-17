@@ -17,7 +17,9 @@ function UserRow({ user }) {
   const confirmDelete = useDeleteConfirm();
 
   const handleEdit = () => {
-    navigate(`${ROUTES.mastersUserRegister}?userId=${user.id}`);
+    navigate(`${ROUTES.mastersUserRegister}?userId=${user.id}`, {
+      replace: true,
+    });
   };
 
   const handleDelete = async () => {
@@ -103,7 +105,8 @@ export default function UserListPage() {
       menuItems: [
         {
           label: "Add User",
-          onSelect: () => navigate(ROUTES.mastersUserRegister),
+          onSelect: () =>
+            navigate(ROUTES.mastersUserRegister, { replace: true }),
         },
       ],
       search: {

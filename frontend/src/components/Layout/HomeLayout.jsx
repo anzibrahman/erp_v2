@@ -622,6 +622,7 @@ function MobileWalletCard({ headerOptions, selectedCompany, onCompanyClick }) {
 
 function MobileTopHeader({ isHome, title, headerOptions, forceShowOnHome = false }) {
   const navigate = useNavigate();
+  const location = useLocation();
   const { logoutUser } = useLogoutUser();
   const searchOptions = headerOptions?.search;
   const showSearch = Boolean(searchOptions?.show ?? searchOptions);
@@ -649,10 +650,28 @@ function MobileTopHeader({ isHome, title, headerOptions, forceShowOnHome = false
   if (isHome && !forceShowOnHome) return null;
 
   const onBack = () => {
+    const backRouteMap = {
+      [ROUTES.mastersCompany]: ROUTES.home,
+      [ROUTES.mastersUsers]: ROUTES.home,
+      [ROUTES.mastersCustomers]: ROUTES.home,
+      [ROUTES.mastersProducts]: ROUTES.home,
+      [ROUTES.mastersPartyList]: ROUTES.home,
+      [ROUTES.mastersCompanyRegister]: ROUTES.mastersCompany,
+      [ROUTES.mastersUserRegister]: ROUTES.mastersUsers,
+      [ROUTES.mastersPartyRegister]: ROUTES.mastersPartyList,
+    };
+
+    const targetRoute = backRouteMap[location.pathname];
+    if (targetRoute) {
+      navigate(targetRoute, { replace: true });
+      return;
+    }
+
     if (window.history.length > 1) {
       navigate(-1);
       return;
     }
+
     navigate(ROUTES.home, { replace: true });
   };
 

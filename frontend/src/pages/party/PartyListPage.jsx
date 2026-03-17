@@ -94,7 +94,8 @@ const cmpId = useSelector((state) => state.company.selectedCompanyId) || "";
       menuItems: [
         {
           label: isCustomersRoute ? "Add Customer" : "Add Party",
-          onSelect: () => navigate(ROUTES.mastersPartyRegister),
+          onSelect: () =>
+            navigate(ROUTES.mastersPartyRegister, { replace: true }),
         },
       ],
       search: {
@@ -146,7 +147,9 @@ const cmpId = useSelector((state) => state.company.selectedCompanyId) || "";
   const parties = data?.pages?.flatMap((page) => page?.items || []) || [];
 
   const handleEdit = (party) => {
-    navigate(`${ROUTES.mastersPartyRegister}?partyId=${party._id}`);
+    navigate(`${ROUTES.mastersPartyRegister}?partyId=${party._id}`, {
+      replace: true,
+    });
   };
 
   const handleDelete = async (party) => {

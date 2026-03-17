@@ -249,7 +249,7 @@ const cmpId = useSelector((state) => state.company.selectedCompanyId) || "";
         });
       }
 
-      navigate(ROUTES.mastersPartyList);
+      navigate(ROUTES.mastersPartyList, { replace: true });
     } catch (err) {
       const message =
         err?.response?.data?.message || err?.message || "Save failed";
@@ -503,7 +503,9 @@ const cmpId = useSelector((state) => state.company.selectedCompanyId) || "";
               <div className="flex justify-end gap-3 border-t border-slate-100 pt-4">
                 <button
                   type="button"
-                  onClick={() => navigate(ROUTES.mastersPartyList)}
+                  onClick={() =>
+                    navigate(ROUTES.mastersPartyList, { replace: true })
+                  }
                   className="rounded-sm border border-slate-200 px-4 py-2 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-50"
                 >
                   Cancel

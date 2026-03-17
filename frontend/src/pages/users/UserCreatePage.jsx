@@ -132,7 +132,7 @@ export default function UserCreatePage() {
         });
       }
 
-      navigate(ROUTES.mastersUsers);
+      navigate(ROUTES.mastersUsers, { replace: true });
     } catch (err) {
       const msg =
         err?.response?.data?.message || err?.message || "User save failed";
@@ -268,7 +268,7 @@ export default function UserCreatePage() {
               <div className="flex justify-end gap-3 border-t border-slate-100 pt-4">
                 <button
                   type="button"
-                  onClick={() => navigate(ROUTES.mastersUsers)}
+                  onClick={() => navigate(ROUTES.mastersUsers, { replace: true })}
                   className="rounded-sm border border-slate-200 px-4 py-2 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-50"
                 >
                   Cancel
