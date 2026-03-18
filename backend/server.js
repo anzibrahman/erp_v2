@@ -15,7 +15,8 @@ import companyRoute from "./routes/company/companyRoute.js";
 import partyRoute from "./routes/party/partyRoute.js";
 import accountGroupRoute from "./routes/accountGroup/accountGroupRoute.js";
 import subGroupRoute from "./routes/subGroup/subGroupRoute.js";
-// ----------------- App Init -----------------
+import voucherRoute from "./routes/voucherSeries/voucherRoute.js";
+
 dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 4000;
@@ -73,6 +74,8 @@ app.use("/api/company", companyRoute);
 app.use("/api/party", partyRoute);
 app.use("/api/account-group", accountGroupRoute);
 app.use("/api/subgroup", subGroupRoute);
+app.use("/api/sUsers", voucherRoute);
+
 // ----------------- Production Build Serving -----------------
 if (process.env.NODE_ENV === "production") {
   const __dirname = path.resolve();

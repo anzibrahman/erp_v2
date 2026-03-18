@@ -1,7 +1,10 @@
+// src/store/index.js
 import { configureStore } from "@reduxjs/toolkit";
 import authReducer from "./slices/authSlice";
 import uiReducer from "./slices/uiSlice";
 import companyReducer from "./slices/companySlice";
+import voucherSeriesReducer from "./slices/voucherSeriesSlice"; // ⬅️ add this
+
 import {
   loadAuthFromStorage,
   saveAuthToStorage,
@@ -20,6 +23,7 @@ export const store = configureStore({
     auth: authReducer,
     ui: uiReducer,
     company: companyReducer,
+    voucherSeries: voucherSeriesReducer, // ⬅️ register slice here
   },
   preloadedState:
     persistedAuth || persistedCompany
