@@ -1,11 +1,14 @@
 // src/pages/outstanding/OutstandingPartyDetailPage.jsx
 import { useParams, useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
-import { usePartyOutstandingQuery } from "@/hooks/queries/outstandingQueries";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { ArrowLeft } from "lucide-react";
+
 import { LedgerFilter } from "./LedgerFilter";
+import { useInfinitePartyOutstandingQuery } from "@/hooks/queries/outstandingQueries";
+
+const PAGE_SIZE = 20;
 
 export default function OutstandingPartyDetailPage() {
   const { partyId } = useParams();
@@ -13,12 +16,21 @@ export default function OutstandingPartyDetailPage() {
     useSelector((state) => state.company.selectedCompanyId) || "";
   const navigate = useNavigate();
 
-  const { data, isLoading, isError, error } = usePartyOutstandingQuery(
-    partyId,
-    cmpId,
-  );
+  const [ledgerType, setLedgerType] = useState("ledger"); // ledger | receivable | payable
 
-  const [ledgerType, setLedgerType] = useState("ledger");
+  const {
+    data,
+    isLoading,
+    isError,
+    error,
+    fetchNextPage,
+    isFetchingNextPage,
+    hasNextPage,
+  } = useInfinitePartyOutstandingQuery({
+    partyId,
+    cmp_id: cmpId,
+    limit: 20,
+  });
 
   useEffect(() => {
     if (!isError) return;
@@ -29,7 +41,9 @@ export default function OutstandingPartyDetailPage() {
     toast.error(message);
   }, [isError, error]);
 
-  const bills = data?.items || [];
+  // Flatten all pages into one array of bills
+  const bills =
+    data?.pages?.flatMap((page) => page?.items || []) || [];
 
   const { filteredBills, total, partyName } = useMemo(() => {
     if (!bills.length)
@@ -39,7 +53,7 @@ export default function OutstandingPartyDetailPage() {
       const val = Number(b.bill_pending_amt || 0);
       if (ledgerType === "receivable") return val > 0;
       if (ledgerType === "payable") return val < 0;
-      return true; // ledger
+      return true; // ledger = all
     });
 
     const sum = list.reduce(
@@ -62,18 +76,17 @@ export default function OutstandingPartyDetailPage() {
         {/* Top header card */}
         <div className="mb-4 rounded-2xl bg-[#3b82f6] px-4 py-4 text-white">
           {/* top row: back button, party name, dropdown at right */}
-          <div className="mb-3 flex  gap-2">
+          <div className="mb-3 flex items-center gap-2">
             <button
               type="button"
               onClick={() => navigate(-1)}
-              className="flex h-8 w-8 items-center justify-center rounded-full "
+              className="flex h-8 w-8 items-center justify-center rounded-full"
             >
               <ArrowLeft className="h-4 w-4" />
             </button>
 
-          
+            
 
-            {/* dropdown fixed to top-right */}
             <LedgerFilter
               value={ledgerType}
               onChange={(v) => setLedgerType(v)}
@@ -142,6 +155,17 @@ export default function OutstandingPartyDetailPage() {
                 </div>
               ))}
             </div>
+          )}
+
+          {hasNextPage && (
+            <button
+              type="button"
+              onClick={() => fetchNextPage()}
+              disabled={isFetchingNextPage}
+              className="mt-3 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-2 text-xs font-medium text-slate-700 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {isFetchingNextPage ? "Loading more..." : "Load more bills"}
+            </button>
           )}
         </div>
       </div>
