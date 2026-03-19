@@ -6,6 +6,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { toast } from "sonner";
 import api from "@/api/client/apiClient";
 import DespatchDetailsSheet from "@/components/DespatchDetailsSheet";
+import PartySelectSheet from "@/components/PartySelectSheet";
 import TransactionHeader from "@/components/TransactionHeader";
 import { setCompany } from "@/store/slices/transactionSlice";
 
@@ -29,27 +30,39 @@ function SectionCard({ title, required, subtitle, children }) {
 }
 
 function PartySection() {
+  const [open, setOpen] = useState(false);
+  const party = useSelector((state) => state.transaction.party);
+
   return (
-    <SectionCard
-      title="Party"
-      required
-      subtitle="Select the customer for this order"
-    >
-      <div className="flex flex-col gap-2 md:flex-row md:items-center">
-        <button
-          type="button"
-          className="inline-flex flex-1 items-center justify-between rounded-lg border border-dashed border-violet-300 bg-violet-50/40 px-3 py-2.5 text-xs font-medium text-violet-700 transition hover:bg-violet-50 hover:border-violet-400"
-        >
-          <span className="inline-flex items-center gap-2">
-            <span className="flex h-6 w-6 items-center justify-center rounded-full bg-violet-100 text-violet-600">
-              <User2 className="h-3.5 w-3.5" />
+    <>
+      <SectionCard
+        title="Party"
+        required
+        subtitle="Select the customer for this order"
+      >
+        <div className="flex flex-col gap-2 md:flex-row md:items-center">
+          <button
+            type="button"
+            onClick={() => setOpen(true)}
+            className="inline-flex flex-1 items-center justify-between rounded-lg border border-dashed border-violet-300 bg-violet-50/40 px-3 py-2.5 text-xs font-medium text-violet-700 transition hover:bg-violet-50 hover:border-violet-400"
+          >
+            <span className="inline-flex items-center gap-2">
+              <span className="flex h-6 w-6 items-center justify-center rounded-full bg-violet-100 text-violet-600">
+                <User2 className="h-3.5 w-3.5" />
+              </span>
+              <span>{party?.partyName ? party.partyName : "+ Add Party Name"}</span>
             </span>
-            <span>+ Add Party Name</span>
-          </span>
-          <span className="text-[10px] text-violet-500">Search / Create</span>
-        </button>
-      </div>
-    </SectionCard>
+            <span className="text-[10px] text-violet-500">
+              {party?.totalOutstanding != null
+                ? `Outstanding: Rs.${party.totalOutstanding.toFixed(2)}`
+                : "Search / Select"}
+            </span>
+          </button>
+        </div>
+      </SectionCard>
+
+      <PartySelectSheet open={open} onOpenChange={setOpen} />
+    </>
   );
 }
 

@@ -72,6 +72,12 @@ const transactionSlice = createSlice({
     resetDespatchDetails(state) {
       state.despatchDetails = { ...initialState.despatchDetails };
     },
+    setParty(state, action) {
+      state.party = action.payload || null;
+    },
+    clearParty(state) {
+      state.party = null;
+    },
   },
 });
 
@@ -82,6 +88,8 @@ export const {
   hydrateSelectedSeries,
   setDespatchDetails,
   resetDespatchDetails,
+  setParty,
+  clearParty,
 } = transactionSlice.actions;
 
 export default transactionSlice.reducer;
