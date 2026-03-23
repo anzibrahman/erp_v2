@@ -52,6 +52,8 @@ export default function MobileTopHeader({
 
   const onBack = () => {
     const backRouteMap = {
+      [ROUTES.createOrder]: ROUTES.home,
+      [ROUTES.salesSelectItems]: ROUTES.createOrder,
       [ROUTES.mastersCompany]: ROUTES.home,
       [ROUTES.mastersUsers]: ROUTES.home,
       [ROUTES.mastersCustomers]: ROUTES.home,

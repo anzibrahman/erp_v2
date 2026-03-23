@@ -244,12 +244,14 @@ function AdditionalChargesSection() {
   const cmpId = useSelector((state) => state.company.selectedCompanyId) || "";
   const selectedCharges = useSelector((state) => state.transaction.additionalCharges);
   const totals = useSelector((state) => state.transaction.totals);
+  const items = useSelector((state) => state.transaction.items);
   const [open, setOpen] = useState(false);
   const [draftCharges, setDraftCharges] = useState(selectedCharges);
+  const hasItems = items.length > 0;
 
   const { data: charges = [], isLoading, isError, error } = useAdditionalChargesQuery({
     cmp_id: cmpId,
-    enabled: Boolean(cmpId),
+    enabled: Boolean(cmpId) && hasItems,
   });
 
   useEffect(() => {
@@ -308,7 +310,8 @@ function AdditionalChargesSection() {
         <button
           type="button"
           onClick={() => setOpen(true)}
-          className="inline-flex w-full items-center justify-between rounded-xl border border-teal-200 bg-teal-50/40 px-3 py-3 text-left text-xs font-medium text-slate-700 transition hover:border-teal-300 hover:bg-teal-50"
+          disabled={!hasItems}
+          className="inline-flex w-full items-center justify-between rounded-xl border border-teal-200 bg-teal-50/40 px-3 py-3 text-left text-xs font-medium text-slate-700 transition hover:border-teal-300 hover:bg-teal-50 disabled:cursor-not-allowed disabled:opacity-60"
         >
           <span className="min-w-0">
             <span className="block text-sm font-semibold text-slate-900">
@@ -319,7 +322,9 @@ function AdditionalChargesSection() {
             <span className="mt-1 block truncate text-[11px] text-slate-500">
               {selectedCharges.length > 0
                 ? previewText
-                : "Choose charge heads and set add/subtract values"}
+                : hasItems
+                  ? "Choose charge heads and set add/subtract values"
+                  : "Add items first to apply additional charges"}
             </span>
           </span>
           <span className="ml-3 inline-flex items-center gap-2 whitespace-nowrap text-[11px] text-teal-700">
@@ -488,11 +493,13 @@ function ItemsSection() {
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const items = useSelector((state) => state.transaction.items);
+  const party = useSelector((state) => state.transaction.party);
   const [editingItemId, setEditingItemId] = useState(null);
   const [itemsSheetOpen, setItemsSheetOpen] = useState(false);
   const editingItem =
     items.find((item) => item.id === editingItemId) || null;
   const previewItems = items.slice(0, 2);
+  const hasParty = Boolean(party?._id || party?.id);
 
   return (
     <>
@@ -507,7 +514,8 @@ function ItemsSection() {
           <button
             type="button"
             onClick={() => navigate(ROUTES.salesSelectItems)}
-            className="inline-flex w-full items-center justify-between rounded-xl border border-teal-600 bg-teal-600 px-3 py-3 text-xs font-medium text-white transition hover:bg-teal-700 hover:border-teal-700"
+            disabled={!hasParty}
+            className="inline-flex w-full items-center justify-between rounded-xl border border-teal-600 bg-teal-600 px-3 py-3 text-xs font-medium text-white transition hover:bg-teal-700 hover:border-teal-700 disabled:cursor-not-allowed disabled:opacity-60"
           >
             <span className="inline-flex items-center gap-2">
               <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/15 text-white">
@@ -521,7 +529,7 @@ function ItemsSection() {
               </span>
             </span>
             <span className="inline-flex items-center gap-2 text-[11px] text-white/85">
-               
+              Search by name / code
               <ChevronRight className="h-4 w-4" />
             </span>
           </button>
@@ -555,7 +563,8 @@ function ItemsSection() {
                       <button
                         type="button"
                         onClick={() => setEditingItemId(item.id)}
-                        className="mt-1 inline-flex items-center gap-1 rounded-full border border-teal-200 bg-white px-2.5 py-1 text-[11px] font-medium text-teal-700 transition hover:bg-teal-50"
+                        disabled={!hasParty}
+                        className="mt-1 inline-flex items-center gap-1 rounded-full border border-teal-200 bg-white px-2.5 py-1 text-[11px] font-medium text-teal-700 transition hover:bg-teal-50 disabled:cursor-not-allowed disabled:opacity-60"
                       >
                         <Pencil className="h-3.5 w-3.5" />
                         Edit
@@ -568,7 +577,8 @@ function ItemsSection() {
               <button
                 type="button"
                 onClick={() => setItemsSheetOpen(true)}
-                className="inline-flex w-full items-center justify-between rounded-xl border border-teal-100 bg-teal-50/40 px-3 py-3 text-xs font-medium text-slate-700 transition hover:border-teal-200 hover:bg-teal-50"
+                disabled={!hasParty}
+                className="inline-flex w-full items-center justify-between rounded-xl border border-teal-100 bg-teal-50/40 px-3 py-3 text-xs font-medium text-slate-700 transition hover:border-teal-200 hover:bg-teal-50 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 <span>View all items</span>
                 <span className="inline-flex items-center gap-2 text-[11px] text-slate-500">
@@ -642,7 +652,8 @@ function ItemsSection() {
                         setItemsSheetOpen(false);
                         setEditingItemId(item.id);
                       }}
-                      className="mt-1 inline-flex items-center gap-1 rounded-full border border-teal-200 bg-white px-2.5 py-1 text-[11px] font-medium text-teal-700 transition hover:bg-teal-50"
+                      disabled={!hasParty}
+                      className="mt-1 inline-flex items-center gap-1 rounded-full border border-teal-200 bg-white px-2.5 py-1 text-[11px] font-medium text-teal-700 transition hover:bg-teal-50 disabled:cursor-not-allowed disabled:opacity-60"
                     >
                       <Pencil className="h-3.5 w-3.5" />
                       Edit
@@ -658,7 +669,12 @@ function ItemsSection() {
   );
 }
 
-function SummarySection({ onCreate, createLoading, createError, disableCreate }) {
+function SummarySection({
+  onCreate,
+  createLoading,
+  createError,
+  disableCreate,
+}) {
   const totals = useSelector((state) => state.transaction.totals);
   const items = useSelector((state) => state.transaction.items);
   const errorMessage =
@@ -749,12 +765,6 @@ function SummarySection({ onCreate, createLoading, createError, disableCreate })
           {createLoading && <LoaderCircle className="h-4 w-4 animate-spin" />}
           Create Sales Order
         </button>
-
-        {disableCreate && !createLoading && (
-          <p className="text-xs text-amber-600">
-            Wait for the transaction header to finish loading before creating the order.
-          </p>
-        )}
 
         {errorMessage && (
           <div className="flex items-start gap-2 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-700">
@@ -852,6 +862,9 @@ export default function SalesCreatePage() {
   const createLoading =
     createSaleOrderMutation.isPending || createSaleOrderMutation.isLoading;
   const headerReady = Boolean(buildHeaderPayload);
+  const hasParty = Boolean(party?._id || party?.id);
+  const hasItems = items.length > 0;
+  const disableCreate = !cmpId || !headerReady || !hasParty || !hasItems;
 
   return (
     <div className="flex h-full flex-col bg-slate-50">
@@ -872,7 +885,7 @@ export default function SalesCreatePage() {
             onCreate={() => createSaleOrderMutation.mutate()}
             createLoading={createLoading}
             createError={createSaleOrderMutation.error}
-            disableCreate={!cmpId || !headerReady}
+            disableCreate={disableCreate}
           />
         </div>
       </main>
