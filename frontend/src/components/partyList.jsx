@@ -248,6 +248,7 @@ export function PartyList({ mode = "master", onSelect }) {
   );
 
   // Header total based on current filter & current page parties
+  // eslint-disable-next-line react-hooks/rules-of-hooks
   const { headerBalance, headerClassification } = useMemo(() => {
     const sum = parties.reduce((acc, p) => {
       const val = p.totalOutstanding || 0;

@@ -208,7 +208,8 @@ export const listParties = async (req, res) => {
     const [parties, total] = await Promise.all([
       Party.find(filter)
         .select(PARTY_LIST_PROJECTION)
-        .sort({ _id: -1 })
+        .collation({ locale: "en", strength: 1 })
+        .sort({ partyName: 1, _id: 1 })
         .skip(skip)
         .limit(limitNum)
         .lean(),
@@ -411,7 +412,11 @@ export const getParties = async (req, res) => {
     const skip = (Number(page) - 1) * Number(limit);
 
     const [items, total] = await Promise.all([
-      Party.find(query).skip(skip).limit(Number(limit)),
+      Party.find(query)
+        .collation({ locale: "en", strength: 1 })
+        .sort({ partyName: 1, _id: 1 })
+        .skip(skip)
+        .limit(Number(limit)),
       Party.countDocuments(query),
     ]);
 
