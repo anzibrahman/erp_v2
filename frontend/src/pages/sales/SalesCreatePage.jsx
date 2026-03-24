@@ -529,7 +529,7 @@ function ItemsSection() {
               </span>
             </span>
             <span className="inline-flex items-center gap-2 text-[11px] text-white/85">
-              Search by name / code
+             
               <ChevronRight className="h-4 w-4" />
             </span>
           </button>
