@@ -112,9 +112,14 @@ export const importOutstandingFromTally = async (req, res) => {
       try {
         if (!dataItem.billId) throw new Error("Missing billId");
         if (!dataItem.bill_no) throw new Error("Missing bill_no");
-        if (!dataItem.bill_amount) throw new Error("Missing bill_amount");
-        if (!dataItem.bill_pending_amt)
+        if (dataItem.bill_amount == null || dataItem.bill_amount === "")
+          throw new Error("Missing bill_amount");
+        if (
+          dataItem.bill_pending_amt == null ||
+          dataItem.bill_pending_amt === ""
+        ) {
           throw new Error("Missing bill_pending_amt");
+        }
 
         if (!dataItem.Primary_user_id)
           throw new Error("Missing Primary_user_id");
@@ -153,8 +158,23 @@ export const importOutstandingFromTally = async (req, res) => {
         if (subGroup_id && !subGrpMap[subGroup_id])
           throw new Error(`Invalid subGroup_id: ${subGroup_id}`);
 
+        const billAmount = Number(dataItem.bill_amount);
+        const billPendingAmount = Number(dataItem.bill_pending_amt);
+
+        if (Number.isNaN(billAmount)) {
+          throw new Error(`Invalid bill_amount: ${dataItem.bill_amount}`);
+        }
+
+        if (Number.isNaN(billPendingAmount)) {
+          throw new Error(
+            `Invalid bill_pending_amt: ${dataItem.bill_pending_amt}`
+          );
+        }
+
         const doc = {
           ...restData,
+          bill_amount: billAmount,
+          bill_pending_amt: billPendingAmount,
           party_id: partyIdMap[party_id],
           accountGroup: accntgrpMap[accountGroup_id],
           ...(subGroup_id && subGrpMap[subGroup_id]
