@@ -2,6 +2,14 @@
 import mongoose from "mongoose";
 import Party from "../Model/partySchema.js"
 import AccountGroup from "../Model/AccountGroup.js";
+import Outstanding from "../Model/oustandingShcema.js";
+
+const PARTY_LIST_PROJECTION = {
+  partyName: 1,
+  mobileNumber: 1,
+  emailID: 1,
+  gstNo: 1,
+};
 
 const resolveAccountGroupId = async ({ cmp_id, accountGroup }) => {
   if (accountGroup && accountGroup !== "") {
@@ -18,6 +26,65 @@ const resolveAccountGroupId = async ({ cmp_id, accountGroup }) => {
   }
 
   return fallbackGroup._id;
+};
+
+const getOutstandingTotalsMap = async ({ owner, cmpObjectId, partyIds }) => {
+  if (!partyIds?.length) {
+    return {};
+  }
+
+  const totals = await Outstanding.aggregate([
+    {
+      $match: {
+        Primary_user_id: new mongoose.Types.ObjectId(owner),
+        cmp_id: cmpObjectId,
+        party_id: { $in: partyIds },
+        isCancelled: false,
+      },
+    },
+    {
+      $group: {
+        _id: "$party_id",
+        totalDr: {
+          $sum: {
+            $cond: [
+              { $eq: ["$classification", "Dr"] },
+              "$bill_pending_amt",
+              0,
+            ],
+          },
+        },
+        totalCr: {
+          $sum: {
+            $cond: [
+              { $eq: ["$classification", "Cr"] },
+              "$bill_pending_amt",
+              0,
+            ],
+          },
+        },
+      },
+    },
+  ]);
+
+  return totals.reduce((acc, total) => {
+    acc[String(total._id)] = {
+      totalDr: total.totalDr || 0,
+      totalCr: total.totalCr || 0,
+    };
+    return acc;
+  }, {});
+};
+
+const withOutstandingSummary = (party, totalsMap) => {
+  const totals = totalsMap[String(party._id)] || { totalDr: 0, totalCr: 0 };
+  const balance = totals.totalDr - totals.totalCr;
+
+  return {
+    ...party,
+    totalOutstanding: balance,
+    classification: balance >= 0 ? "Dr" : "Cr",
+  };
 };
 
 export const addParty = async (req, res) => {
@@ -107,13 +174,16 @@ export const listParties = async (req, res) => {
         .json({ message: "cmp_id (company) is required" });
     }
 
-    const pageNum = parseInt(page) || 1;
-    const limitNum = parseInt(limit) || 20;
+    // cmp_id is ObjectId in both Party and Outstanding
+    const cmpObjectId = new mongoose.Types.ObjectId(cmp_id);
+
+    const pageNum = parseInt(page, 10) || 1;
+    const limitNum = parseInt(limit, 10) || 20;
     const skip = (pageNum - 1) * limitNum;
 
     const filter = {
-      // Primary_user_id: owner,
-      cmp_id,
+      Primary_user_id: owner,
+      cmp_id: cmpObjectId,
     };
 
     const trimmedSearch = String(search || "").trim();
@@ -129,15 +199,35 @@ export const listParties = async (req, res) => {
       ];
     }
 
-    const [items, total] = await Promise.all([
+    // 1) Fetch paginated parties
+    const [parties, total] = await Promise.all([
       Party.find(filter)
+        .select(PARTY_LIST_PROJECTION)
         .sort({ _id: -1 })
         .skip(skip)
-        .limit(limitNum),
+        .limit(limitNum)
+        .lean(), // plain objects
       Party.countDocuments(filter),
     ]);
 
-    const hasMore = skip + items.length < total;
+    const hasMore = skip + parties.length < total;
+
+    if (parties.length === 0) {
+      return res.json({
+        items: [],
+        total,
+        page: pageNum,
+        hasMore,
+      });
+    }
+
+    const partyIds = parties.map((party) => party._id);
+    const totalsMap = await getOutstandingTotalsMap({
+      owner,
+      cmpObjectId,
+      partyIds,
+    });
+    const items = parties.map((party) => withOutstandingSummary(party, totalsMap));
 
     return res.json({
       items,
@@ -150,15 +240,24 @@ export const listParties = async (req, res) => {
     return res.status(500).json({ message: "Failed to fetch parties" });
   }
 };
+
 export const getPartyById = async (req, res) => {
   try {
     const owner = req.user.id;
     const { id } = req.params;
-    const party = await Party.findOne({ _id: id, Primary_user_id: owner });
+    const party = await Party.findOne({ _id: id, Primary_user_id: owner }).lean();
     if (!party) {
       return res.status(404).json({ message: "Party not found" });
     }
-    res.json(party);
+
+    const cmpObjectId = new mongoose.Types.ObjectId(party.cmp_id);
+    const totalsMap = await getOutstandingTotalsMap({
+      owner,
+      cmpObjectId,
+      partyIds: [party._id],
+    });
+
+    res.json(withOutstandingSummary(party, totalsMap));
   } catch {
     res.status(500).json({ message: "Failed to fetch party" });
   }

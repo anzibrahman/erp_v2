@@ -152,9 +152,9 @@ export const addProducts = async (req, res) => {
     const productMasterIds = [];
 
     for (const { product } of validProducts) {
-      if (product?.brand_id) brandIds.add(product.brand_id);
-      if (product?.category_id) categoryIds.add(product.category_id);
-      if (product?.subcategory_id) subcategoryIds.add(product.subcategory_id);
+      if (product?.brand) brandIds.add(product.brand);
+      if (product?.category) categoryIds.add(product.category);
+      if (product?.sub_category) subcategoryIds.add(product.sub_category);
       if (Array.isArray(product?.priceLevels)) {
         for (const pl of product.priceLevels) {
           if (pl?.priceLevel) priceLevelIds.add(pl.priceLevel);
@@ -225,6 +225,15 @@ export const addProducts = async (req, res) => {
       existingProductMap[p.product_master_id] = p;
     });
 
+
+    console.log("brandMap",brandMap);
+    console.log("categoryMap",categoryMap);
+    console.log("subcategoryMap",subcategoryMap);
+    console.log("priceLevelMap",priceLevelMap);
+    console.log("existingProductMap",existingProductMap);
+ 
+    
+
     // 7) Build operations array, skipping when brand/category/subcategory/priceLevel not found
     const ops = [];
     const BATCH_SIZE = 200;
@@ -234,17 +243,17 @@ export const addProducts = async (req, res) => {
 
       // 7.a Resolve brand (optional, but if provided must exist)
       let brandObjectId = null;
-      if (product.brand_id) {
-        brandObjectId = brandMap.get(product.brand_id) || null;
+      if (product.brand) {
+        brandObjectId = brandMap.get(product.brand) || null;
 
         if (!brandObjectId) {
           results.skipped.push({
             item: itemIndex,
-            reason: `Brand not found with ID: ${product.brand_id}`,
+            reason: `Brand not found with ID: ${product.brand}`,
             data: {
               product_master_id: product.product_master_id,
               product_name: product.product_name || null,
-              brand_id: product.brand_id,
+              brand_id: product.brand,
             },
           });
           continue;
@@ -253,17 +262,17 @@ export const addProducts = async (req, res) => {
 
       // 7.b Resolve category (optional, but if provided must exist)
       let categoryObjectId = null;
-      if (product.category_id) {
-        categoryObjectId = categoryMap.get(product.category_id) || null;
+      if (product.category) {
+        categoryObjectId = categoryMap.get(product.category) || null;
 
         if (!categoryObjectId) {
           results.skipped.push({
             item: itemIndex,
-            reason: `Category not found with ID: ${product.category_id}`,
+            reason: `Category not found with ID: ${product.category}`,
             data: {
               product_master_id: product.product_master_id,
               product_name: product.product_name || null,
-              category_id: product.category_id,
+              category_id: product.category,
             },
           });
           continue;
@@ -272,18 +281,18 @@ export const addProducts = async (req, res) => {
 
       // 7.c Resolve subcategory (optional, but if provided must exist)
       let subcategoryObjectId = null;
-      if (product.subcategory_id) {
+      if (product.sub_category) {
         subcategoryObjectId =
-          subcategoryMap.get(product.subcategory_id) || null;
+          subcategoryMap.get(product.sub_category) || null;
 
         if (!subcategoryObjectId) {
           results.skipped.push({
             item: itemIndex,
-            reason: `Subcategory not found with ID: ${product.subcategory_id}`,
+            reason: `Subcategory not found with ID: ${product.sub_category}`,
             data: {
               product_master_id: product.product_master_id,
               product_name: product.product_name || null,
-              subcategory_id: product.subcategory_id,
+              subcategory_id: product.sub_category,
             },
           });
           continue;

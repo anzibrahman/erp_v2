@@ -13,9 +13,13 @@ import authRoute from "./routes/auth/authRoute.js";
 import userRoute from "./routes/user/userRoute.js";
 import companyRoute from "./routes/company/companyRoute.js";
 import partyRoute from "./routes/party/partyRoute.js";
+import additionalChargeRoute from "./routes/additionalCharge/additionalChargeRoute.js";
+import pricingRoute from "./routes/pricing/pricingRoute.js";
+import priceLevelRoute from "./routes/priceLevel/priceLevelRoute.js";
 import productRoute from "./routes/product/productRoute.js";
 import accountGroupRoute from "./routes/accountGroup/accountGroupRoute.js";
 import subGroupRoute from "./routes/subGroup/subGroupRoute.js";
+import voucherRoute from "./routes/voucherSeries/voucherRoute.js";
 import tallyDataRoute from "./routes/tallyData/tallyDataRoutes.js";
 // ----------------- App Init -----------------
 dotenv.config();
@@ -73,10 +77,15 @@ app.use("/api/auth", authRoute);
 app.use("/api/users", userRoute);
 app.use("/api/company", companyRoute);
 app.use("/api/party", partyRoute);
+app.use("/api/additional-charges", additionalChargeRoute);
+app.use("/api/pricing", pricingRoute);
+app.use("/api/price-levels", priceLevelRoute);
 app.use("/api/product", productRoute);
 app.use("/api/account-group", accountGroupRoute);
 app.use("/api/subgroup", subGroupRoute);
+app.use("/api/sUsers", voucherRoute);
 app.use("/api/tally", tallyDataRoute);
+
 // ----------------- Production Build Serving -----------------
 if (process.env.NODE_ENV === "production") {
   const __dirname = path.resolve();

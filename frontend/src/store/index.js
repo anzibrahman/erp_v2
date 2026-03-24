@@ -1,7 +1,10 @@
+// src/store/index.js
 import { configureStore } from "@reduxjs/toolkit";
 import authReducer from "./slices/authSlice";
 import uiReducer from "./slices/uiSlice";
 import companyReducer from "./slices/companySlice";
+import transactionReducer from "./slices/transactionSlice";
+
 import {
   loadAuthFromStorage,
   saveAuthToStorage,
@@ -20,6 +23,7 @@ export const store = configureStore({
     auth: authReducer,
     ui: uiReducer,
     company: companyReducer,
+    transaction: transactionReducer,
   },
   preloadedState:
     persistedAuth || persistedCompany
