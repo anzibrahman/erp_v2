@@ -24,15 +24,13 @@ const optionalString = z.preprocess(
 );
 const optionalBalanceType = z.preprocess(
   (value) => (value === "" ? undefined : value),
-  z.enum(["Dr", "Cr"]).optional(),
+  z.enum(["dr", "cr"]).optional(),
 );
 
 const schema = z.object({
   partyName: z.string().min(1, "Party name is required"),
   partyType: z.enum(["party", "bank", "cash"]).optional(),
-  accountGroup: z
-    .string()
-    .min(1, "Account group is required"), 
+  accountGroup: z.string().min(1, "Account group is required"),
   subGroup: optionalString,
   mobileNumber: z.string().min(1, "Mobile number is required"),
   emailID: z.string().email("Invalid email").optional().or(z.literal("")),
@@ -64,7 +62,6 @@ export default function PartyRegisterPage() {
   const queryClient = useQueryClient();
   const cmpId = useSelector((state) => state.company.selectedCompanyId) || "";
 
-
   const {
     register,
     handleSubmit,
@@ -86,22 +83,16 @@ export default function PartyRegisterPage() {
       shippingAddress: "",
       creditPeriod: "",
       creditLimit: "",
-      openingBalanceType: "",
-      openingBalanceAmount: "",
+      openingBalanceType: "dr",   // hidden default
+      openingBalanceAmount: "0",  // hidden default
       country: "India",
       state: "Kerala",
       pin: "",
     },
   });
 
-  const watchedAccountGroup = useWatch({
-    control,
-    name: "accountGroup",
-  });
-  const selectedCountry = useWatch({
-    control,
-    name: "country",
-  });
+  const watchedAccountGroup = useWatch({ control, name: "accountGroup" });
+  const selectedCountry = useWatch({ control, name: "country" });
 
   const {
     data: accountGroups = [],
@@ -125,7 +116,6 @@ export default function PartyRegisterPage() {
 
   useEffect(() => {
     if (!isAccountGroupsError) return;
-
     const message =
       accountGroupsError?.response?.data?.message ||
       accountGroupsError?.message ||
@@ -135,7 +125,6 @@ export default function PartyRegisterPage() {
 
   useEffect(() => {
     if (!isSubGroupsError) return;
-
     const message =
       subGroupsError?.response?.data?.message ||
       subGroupsError?.message ||
@@ -145,23 +134,26 @@ export default function PartyRegisterPage() {
 
   useEffect(() => {
     if (!isError) return;
-
     const message =
-      error?.response?.data?.message || error?.message || "Failed to load party";
+      error?.response?.data?.message ||
+      error?.message ||
+      "Failed to load party";
     toast.error(message);
   }, [error, isError]);
 
   useEffect(() => {
     if (!party) return;
- if (!accountGroups.length) return;
+    if (!accountGroups.length) return;
     reset({
       partyName: party.partyName || "",
       partyType: party.partyType || "party",
       accountGroup:
-      party.accountGroup?._id ||
-      party.accountGroup?.id ||
-      party.accountGroup || "",
-      subGroup: party.subGroup?._id || party.subGroup?.id || party.subGroup || "",
+        party.accountGroup?._id ||
+        party.accountGroup?.id ||
+        party.accountGroup ||
+        "",
+      subGroup:
+        party.subGroup?._id || party.subGroup?.id || party.subGroup || "",
       mobileNumber: party.mobileNumber || "",
       emailID: party.emailID || "",
       gstNo: party.gstNo || "",
@@ -170,21 +162,18 @@ export default function PartyRegisterPage() {
       shippingAddress: party.shippingAddress || "",
       creditPeriod: party.creditPeriod || "",
       creditLimit: party.creditLimit || "",
-      openingBalanceType: party.openingBalanceType || "",
-      openingBalanceAmount:
-        party.openingBalanceAmount != null
-          ? String(party.openingBalanceAmount)
-          : "",
+      openingBalanceType: "dr",   // always reset to dr
+      openingBalanceAmount: "0",  // always reset to 0
       country: party.country || "",
       state: party.state || "",
       pin: party.pin || "",
     });
-  }, [party,accountGroups, reset]);
+  }, [party, accountGroups, reset]);
 
   const selectedAccountGroupLabel = useMemo(() => {
     return (
-      accountGroups.find((item) => item._id === watchedAccountGroup)?.accountGroup ||
-      ""
+      accountGroups.find((item) => item._id === watchedAccountGroup)
+        ?.accountGroup || ""
     );
   }, [accountGroups, watchedAccountGroup]);
 
@@ -210,9 +199,9 @@ export default function PartyRegisterPage() {
         country: values.country?.trim() || "",
         state: values.state?.trim() || "",
         pin: values.pin?.trim() || "",
-        openingBalanceAmount: values.openingBalanceAmount
-          ? Number(values.openingBalanceAmount)
-          : 0,
+        // ✅ Always submit as dr / 0 — not collected from UI
+        openingBalanceType: "dr",
+        openingBalanceAmount: 0,
         subGroup: values.subGroup || "",
       };
 
@@ -312,26 +301,27 @@ export default function PartyRegisterPage() {
 
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 <div>
-  <label className={labelClass}>Account Group</label>
-  <select className={inputClass} {...register("accountGroup")}>
-    <option value="">Select account group</option>
-    {accountGroups.map((group) => (
-      <option key={group._id} value={group._id}>
-        {group.accountGroup}
-      </option>
-    ))}
-  </select>
-  {errors.accountGroup && (
-    <p className={errorClass}>{errors.accountGroup.message}</p>
-  )}
-</div>
-
+                  <label className={labelClass}>Account Group</label>
+                  <select className={inputClass} {...register("accountGroup")}>
+                    <option value="">Select account group</option>
+                    {accountGroups.map((group) => (
+                      <option key={group._id} value={group._id}>
+                        {group.accountGroup}
+                      </option>
+                    ))}
+                  </select>
+                  {errors.accountGroup && (
+                    <p className={errorClass}>{errors.accountGroup.message}</p>
+                  )}
+                </div>
 
                 <div>
                   <label className={labelClass}>Sub Group</label>
                   <select className={inputClass} {...register("subGroup")}>
                     <option value="">
-                      {watchedAccountGroup ? "Select sub group" : "Choose account group first"}
+                      {watchedAccountGroup
+                        ? "Select sub group"
+                        : "Choose account group first"}
                     </option>
                     {subGroups.map((group) => (
                       <option key={group._id} value={group._id}>
@@ -381,31 +371,6 @@ export default function PartyRegisterPage() {
                     placeholder="Enter PAN number"
                     {...register("panNo")}
                   />
-                </div>
-
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                  <div>
-                    <label className={labelClass}>Opening Balance Type</label>
-                    <select className={inputClass} {...register("openingBalanceType")}>
-                      <option value="">Select type</option>
-                      <option value="Dr">Debit</option>
-                      <option value="Cr">Credit</option>
-                    </select>
-                    {errors.openingBalanceType && (
-                      <p className={errorClass}>{errors.openingBalanceType.message}</p>
-                    )}
-                  </div>
-
-                  <div>
-                    <label className={labelClass}>Opening Balance</label>
-                    <input
-                      type="number"
-                      step="0.01"
-                      className={inputClass}
-                      placeholder="0.00"
-                      {...register("openingBalanceAmount")}
-                    />
-                  </div>
                 </div>
               </div>
 

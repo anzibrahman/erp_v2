@@ -48,7 +48,7 @@ const getOutstandingTotalsMap = async ({ owner, cmpObjectId, partyIds }) => {
         totalDr: {
           $sum: {
             $cond: [
-              { $eq: ["$classification", "Dr"] },
+              { $eq: ["$classification", "dr"] },
               "$bill_pending_amt",
               0,
             ],
@@ -57,7 +57,7 @@ const getOutstandingTotalsMap = async ({ owner, cmpObjectId, partyIds }) => {
         totalCr: {
           $sum: {
             $cond: [
-              { $eq: ["$classification", "Cr"] },
+              { $eq: ["$classification", "cr"] },
               "$bill_pending_amt",
               0,
             ],
@@ -83,7 +83,7 @@ const withOutstandingSummary = (party, totalsMap) => {
   return {
     ...party,
     totalOutstanding: balance,
-    classification: balance >= 0 ? "Dr" : "Cr",
+    classification: balance >= 0 ? "dr" : "cr",
   };
 };
 

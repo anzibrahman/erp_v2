@@ -222,7 +222,7 @@ export function PartyList({ mode = "master", onSelect }) {
         {party.totalOutstanding?.toFixed(2) ?? "0.00"}
       </div>
       <div className="text-xs text-slate-500">
-        {party.classification || "Dr"}
+        {party.classification || "dr"}
       </div>
     </div>
   );
