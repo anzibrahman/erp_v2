@@ -6,6 +6,7 @@ import {
 } from "../../store/slices/uiSlice";
 
 // 👇 decide base URL based on environment
+
 const baseURL =
   import.meta.env.DEV
     ? "/api" // uses Vite proxy in development
