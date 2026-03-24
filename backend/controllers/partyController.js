@@ -48,7 +48,7 @@ const getOutstandingTotalsMap = async ({ owner, cmpObjectId, partyIds }) => {
         totalDr: {
           $sum: {
             $cond: [
-              { $eq: ["$classification", "Dr"] },
+              { $eq: ["$classification", "dr"] },
               "$bill_pending_amt",
               0,
             ],
@@ -57,7 +57,7 @@ const getOutstandingTotalsMap = async ({ owner, cmpObjectId, partyIds }) => {
         totalCr: {
           $sum: {
             $cond: [
-              { $eq: ["$classification", "Cr"] },
+              { $eq: ["$classification", "cr"] },
               "$bill_pending_amt",
               0,
             ],
@@ -83,7 +83,7 @@ const withOutstandingSummary = (party, totalsMap) => {
   return {
     ...party,
     totalOutstanding: balance,
-    classification: balance >= 0 ? "Dr" : "Cr",
+    classification: balance >= 0 ? "dr" : "cr",
   };
 };
 
@@ -166,7 +166,13 @@ export const addParty = async (req, res) => {
 export const listParties = async (req, res) => {
   try {
     const owner = req.user.id; // logged-in primary user
-    const { cmp_id, page = 1, limit = 20, search = "" } = req.query;
+    const {
+      cmp_id,
+      page = 1,
+      limit = 20,
+      search = "",
+      ledgerType = "all", // all | receivable | payable
+    } = req.query;
 
     if (!cmp_id) {
       return res
@@ -174,7 +180,6 @@ export const listParties = async (req, res) => {
         .json({ message: "cmp_id (company) is required" });
     }
 
-    // cmp_id is ObjectId in both Party and Outstanding
     const cmpObjectId = new mongoose.Types.ObjectId(cmp_id);
 
     const pageNum = parseInt(page, 10) || 1;
@@ -203,10 +208,11 @@ export const listParties = async (req, res) => {
     const [parties, total] = await Promise.all([
       Party.find(filter)
         .select(PARTY_LIST_PROJECTION)
-        .sort({ _id: -1 })
+        .collation({ locale: "en", strength: 1 })
+        .sort({ partyName: 1, _id: 1 })
         .skip(skip)
         .limit(limitNum)
-        .lean(), // plain objects
+        .lean(),
       Party.countDocuments(filter),
     ]);
 
@@ -215,20 +221,90 @@ export const listParties = async (req, res) => {
     if (parties.length === 0) {
       return res.json({
         items: [],
-        total,
+        total: 0,
         page: pageNum,
-        hasMore,
+        hasMore: false,
       });
     }
 
-    const partyIds = parties.map((party) => party._id);
-    const totalsMap = await getOutstandingTotalsMap({
-      owner,
-      cmpObjectId,
-      partyIds,
-    });
-    const items = parties.map((party) => withOutstandingSummary(party, totalsMap));
+    // 2) Prepare ObjectId list for aggregation
+    const partyIds = parties.map((p) => p._id);
 
+    // 3) Aggregate dr/cr from Outstanding
+    const totals = await Outstanding.aggregate([
+      {
+        $match: {
+          Primary_user_id: new mongoose.Types.ObjectId(owner),
+          cmp_id: cmpObjectId,
+          party_id: { $in: partyIds },
+          isCancelled: false,
+        },
+      },
+      {
+        $group: {
+          _id: "$party_id",
+          totalDr: {
+            $sum: {
+              $cond: [
+                { $eq: ["$classification", "dr"] },
+                "$bill_pending_amt",
+                0,
+              ],
+            },
+          },
+          totalCr: {
+            $sum: {
+              $cond: [
+                { $eq: ["$classification", "cr"] },
+                "$bill_pending_amt",
+                0,
+              ],
+            },
+          },
+        },
+      },
+    ]);
+
+    const totalsMap = totals.reduce((acc, t) => {
+      const key = String(t._id);
+      acc[key] = {
+        totalDr: t.totalDr || 0,
+        totalCr: t.totalCr || 0,
+      };
+      return acc;
+    }, {});
+
+    // 4) Attach totals and classification
+    let items = parties.map((p) => {
+      const key = String(p._id);
+      const t = totalsMap[key] || { totalDr: 0, totalCr: 0 };
+      const totalReceivable = t.totalDr || 0;
+      const totalPayable = t.totalCr || 0;
+      const netBalance = totalReceivable - totalPayable; // dr - cr
+
+      let totalOutstanding = netBalance;
+      let classification = netBalance >= 0 ? "dr" : "cr";
+
+      if (ledgerType === "receivable") {
+        totalOutstanding = totalReceivable;
+        classification = "dr";
+      } else if (ledgerType === "payable") {
+        totalOutstanding = totalPayable;
+        classification = "cr";
+      }
+
+      return {
+        ...p,
+        totalReceivable,
+        totalPayable,
+        netOutstanding: netBalance,
+        totalOutstanding,
+        classification,
+      };
+    });
+
+    // Keep the full party list for every outstanding tab. Only the displayed
+    // amount/classification changes with ledgerType.
     return res.json({
       items,
       total,
@@ -320,5 +396,46 @@ export const deleteParty = async (req, res) => {
     res.json({ message: "Party deleted" });
   } catch {
     res.status(500).json({ message: "Failed to delete party" });
+  }
+};
+
+
+export const getParties = async (req, res) => {
+  try {
+    const {
+      page = 1,
+      limit = 20,
+      cmp_id,
+      Primary_user_id,
+      partyType,
+    } = req.query;
+
+    const query = {};
+    if (cmp_id) query.cmp_id = cmp_id;
+    if (Primary_user_id) query.Primary_user_id = Primary_user_id;
+    if (partyType) query.partyType = partyType; // critical
+
+    console.log("getParties query =", query);
+
+    const skip = (Number(page) - 1) * Number(limit);
+
+    const [items, total] = await Promise.all([
+      Party.find(query)
+        .collation({ locale: "en", strength: 1 })
+        .sort({ partyName: 1, _id: 1 })
+        .skip(skip)
+        .limit(Number(limit)),
+      Party.countDocuments(query),
+    ]);
+
+    return res.status(200).json({
+      items,
+      total,
+      page: Number(page),
+      hasMore: skip + items.length < total,
+    });
+  } catch (err) {
+    console.error("getParties error", err);
+    return res.status(500).json({ message: "Server error" });
   }
 };

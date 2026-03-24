@@ -32,7 +32,7 @@ export default function PartySelectSheet({ open, onOpenChange }) {
           totalOutstanding:
             fullParty?.totalOutstanding ?? party?.totalOutstanding ?? 0,
           classification:
-            fullParty?.classification ?? party?.classification ?? "Dr",
+            fullParty?.classification ?? party?.classification ?? "dr",
         })
       );
       onOpenChange(false);

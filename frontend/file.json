@@ -1,7 +1,6 @@
 [
   {
-    "_id": { "$oid": "685a4fc65221f18ef788e3ed" },
-    "Primary_user_id": { "$oid": "69afc211a77164f0b59e9a7b" },
+    "_id": { "$oid": "69b905374fd7a89c26a5b361" },
     "cmp_id": { "$oid": "69b1055e2a47bb531f77a469" },
     "accountGroup": { "$oid": "67ee4670827182257080c05e" },
     "subGroup": { "$oid": "682597ea287e33f87e8a80c3" },
@@ -16,7 +15,7 @@
     "bill_amount": 746,
     "bill_due_date": { "$date": "2020-09-10T00:00:00.000Z" },
     "bill_pending_amt": 746,
-    "classification": "Dr",
+    "classification": "dr",
     "createdBy": "",
     "isCancelled": false,
     "createdAt": { "$date": "2025-06-25T07:12:06.321Z" },
@@ -24,8 +23,7 @@
     "__v": 0
   },
   {
-    "_id": { "$oid": "685a4fc65221f18ef788e3ee" },
-    "Primary_user_id": { "$oid": "69afc211a77164f0b59e9a7b" },
+    "_id": { "$oid": "69b905374fd7a89c26a5b364" },
     "cmp_id": { "$oid": "69b1055e2a47bb531f77a469" },
     "accountGroup": { "$oid": "67ee4670827182257080c05e" },
     "subGroup": { "$oid": "682597ea287e33f87e8a80c3" },
@@ -40,7 +38,7 @@
     "bill_amount": 1280,
     "bill_due_date": { "$date": "2020-10-14T00:00:00.000Z" },
     "bill_pending_amt": 640,
-    "classification": "Dr",
+    "classification": "dr",
     "createdBy": "",
     "isCancelled": false,
     "createdAt": { "$date": "2025-06-26T07:12:06.321Z" },
@@ -48,8 +46,7 @@
     "__v": 0
   },
   {
-    "_id": { "$oid": "685a4fc65221f18ef788e3ef" },
-    "Primary_user_id": { "$oid": "69afc211a77164f0b59e9a7b" },
+    "_id": { "$oid": "69b905374fd7a89c26a5b362" },
     "cmp_id": { "$oid": "69b1055e2a47bb531f77a469" },
     "accountGroup": { "$oid": "67ee4670827182257080c05e" },
     "subGroup": { "$oid": "682597ea287e33f87e8a80c3" },
@@ -64,7 +61,7 @@
     "bill_amount": 935,
     "bill_due_date": { "$date": "2020-11-05T00:00:00.000Z" },
     "bill_pending_amt": 935,
-    "classification": "Dr",
+    "classification": "dr",
     "createdBy": "",
     "isCancelled": false,
     "createdAt": { "$date": "2025-06-27T07:12:06.321Z" },
@@ -72,8 +69,7 @@
     "__v": 0
   },
   {
-    "_id": { "$oid": "685a4fc65221f18ef788e3f0" },
-    "Primary_user_id": { "$oid": "69afc211a77164f0b59e9a7b" },
+    "_id": { "$oid": "69b905374fd7a89c26a5b363" },
     "cmp_id": { "$oid": "69b1055e2a47bb531f77a469" },
     "accountGroup": { "$oid": "67ee4670827182257080c05e" },
     "subGroup": { "$oid": "682597ea287e33f87e8a80c3" },
@@ -88,7 +84,7 @@
     "bill_amount": 1157,
     "bill_due_date": { "$date": "2020-12-02T00:00:00.000Z" },
     "bill_pending_amt": 578.5,
-    "classification": "Dr",
+    "classification": "dr",
     "createdBy": "",
     "isCancelled": false,
     "createdAt": { "$date": "2025-06-28T07:12:06.321Z" },
@@ -112,7 +108,7 @@
     "bill_amount": 1580,
     "bill_due_date": { "$date": "2021-01-15T00:00:00.000Z" },
     "bill_pending_amt": 1580,
-    "classification": "Dr",
+    "classification": "dr",
     "createdBy": "",
     "isCancelled": false,
     "createdAt": { "$date": "2025-06-29T07:12:06.321Z" },
