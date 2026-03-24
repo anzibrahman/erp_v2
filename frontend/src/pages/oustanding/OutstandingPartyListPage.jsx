@@ -1,6 +1,6 @@
 // src/pages/outstanding/OutstandingPartyListPage.jsx
 
-import { PartyList } from "@/components/PartyList";
+import { PartyList } from "@/components/partyList";
 
 
 export default function OutstandingPartyListPage() {
