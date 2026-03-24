@@ -10,6 +10,7 @@ import { addSubDetails } from "../../controllers/tallyDataController.js/tallyPro
 import { addGodowns } from "../../controllers/tallyDataController.js/tallyGodownController.js";
 import { addProducts } from "../../controllers/tallyDataController.js/tallyProductController.js";
 import { saveAdditionalChargesFromTally } from "../../controllers/tallyDataController.js/additionalChargeController.js";
+import { importOutstandingFromTally } from "../../controllers/tallyDataController.js/outstandingController.js";
 
 const router = express.Router();
 
@@ -39,5 +40,6 @@ router.post("/subcategories", addSubDetails);
 router.post("/godowns", addGodowns);
 router.post("/products", addProducts);
 router.post("/additional-charge", saveAdditionalChargesFromTally);
+router.post("/outstanding", importOutstandingFromTally);
 
 export default router;

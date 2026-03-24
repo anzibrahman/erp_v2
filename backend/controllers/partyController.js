@@ -278,28 +278,36 @@ export const listParties = async (req, res) => {
     let items = parties.map((p) => {
       const key = String(p._id);
       const t = totalsMap[key] || { totalDr: 0, totalCr: 0 };
-      const balance = t.totalDr - t.totalCr; // dr - cr
+      const totalReceivable = t.totalDr || 0;
+      const totalPayable = t.totalCr || 0;
+      const netBalance = totalReceivable - totalPayable; // dr - cr
+
+      let totalOutstanding = netBalance;
+      let classification = netBalance >= 0 ? "dr" : "cr";
+
+      if (ledgerType === "receivable") {
+        totalOutstanding = totalReceivable;
+        classification = "dr";
+      } else if (ledgerType === "payable") {
+        totalOutstanding = totalPayable;
+        classification = "cr";
+      }
 
       return {
         ...p,
-        totalOutstanding: balance,
-        classification: balance >= 0 ? "dr" : "cr",
+        totalReceivable,
+        totalPayable,
+        netOutstanding: netBalance,
+        totalOutstanding,
+        classification,
       };
     });
 
-    // 5) Apply ledgerType filter (on per-party balance)
-    if (ledgerType === "receivable") {
-      // receivables: dr balance > 0
-      items = items.filter((p) => p.totalOutstanding > 0);
-    } else if (ledgerType === "payable") {
-      // payables: cr balance < 0
-      items = items.filter((p) => p.totalOutstanding < 0);
-    }
-
-    // You can recompute total/hasMore based on filtered items or leave as original.
+    // Keep the full party list for every outstanding tab. Only the displayed
+    // amount/classification changes with ledgerType.
     return res.json({
       items,
-      total: items.length,
+      total,
       page: pageNum,
       hasMore,
     });

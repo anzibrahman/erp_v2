@@ -16,6 +16,9 @@ export function getInitials(name) {
 
 export function getPageTitle(pathname) {
   if (routeTitleMap[pathname]) return routeTitleMap[pathname];
+  if (pathname.startsWith("/outstanding/party/")) {
+    return "Outstanding Details";
+  }
 
   const segment = pathname.split("/").filter(Boolean).at(-1);
   if (!segment) return "Home";

@@ -6,10 +6,13 @@ import subGroupModel from "../../Model/SubGroup.js";
 import { getApiLogs } from "../../utils/logs.js";
 import { buildBulkResponse } from "../../helpers/tallyDataHelpers.js";
 
+
+
 export const importOutstandingFromTally = async (req, res) => {
   try {
     const { data, partyIds } = req.body;
 
+    // 1. Basic validation
     if (!Array.isArray(data) || data.length === 0) {
       return res.status(400).json({
         status: "failure",
@@ -33,18 +36,18 @@ export const importOutstandingFromTally = async (req, res) => {
       });
     }
 
-    // Log this sync
+    // 2. Log this sync
     getApiLogs(cmp_id, "Outstanding Data");
 
-    // -------------------------------
-    // 1) Build partyIdMap using CHUNKS
-    // -------------------------------
-    // You get partyIds from Tally like [{ partyId: "TALLY-ID-1" }, ...]
+    // ---------------------------------
+    // 3. Build partyIdMap using CHUNKS
+    // ---------------------------------
+    // partyIds is like: [{ partyId: "P001" }, { partyId: "P002" }, ...]
     const partyMasterIds = [
-      ...new Set(partyIds.map((p) => p.partyId)), // distinct master ids
+      ...new Set(partyIds.map((p) => p.partyId)), // distinct tally party ids
     ];
 
-    const chunkSize = 1000; // you can tune this
+    const chunkSize = 1000;
     let matchedParties = [];
 
     for (let i = 0; i < partyMasterIds.length; i += chunkSize) {
@@ -53,12 +56,8 @@ export const importOutstandingFromTally = async (req, res) => {
       const partChunk = await partyModel
         .find(
           {
-            Primary_user_id: {
-              $in: [Primary_user_id, new mongoose.Types.ObjectId(Primary_user_id)],
-            },
-            cmp_id: {
-              $in: [cmp_id, new mongoose.Types.ObjectId(cmp_id)],
-            },
+            Primary_user_id: Primary_user_id,
+            cmp_id: cmp_id,
             party_master_id: { $in: chunk },
           },
           { _id: 1, party_master_id: 1 }
@@ -72,9 +71,9 @@ export const importOutstandingFromTally = async (req, res) => {
       matchedParties.map((item) => [item.party_master_id, item._id])
     );
 
-    // -------------------------------
-    // 2) AccountGroup & SubGroup maps (small, single query is fine)
-    // -------------------------------
+    // ---------------------------------
+    // 4. AccountGroup & SubGroup maps
+    // ---------------------------------
     const [matchedAccountGrp, matchedSubGrp] = await Promise.all([
       AccountGroup.find({ Primary_user_id, cmp_id }).lean(),
       subGroupModel.find({ Primary_user_id, cmp_id }).lean(),
@@ -87,9 +86,12 @@ export const importOutstandingFromTally = async (req, res) => {
       matchedSubGrp.map((item) => [item.subGroup_id, item._id])
     );
 
-    // -------------------------------
-    // 3) Delete existing Outstanding for this company
-    // -------------------------------
+    console.log(accntgrpMap,subGrpMap);
+    
+
+    // ---------------------------------
+    // 5. Delete existing Outstanding
+    // ---------------------------------
     const deleted = await Outstanding.deleteMany({ Primary_user_id, cmp_id });
     console.log(
       deleted.deletedCount > 0
@@ -97,9 +99,9 @@ export const importOutstandingFromTally = async (req, res) => {
         : "No existing outstanding documents found"
     );
 
-    // -------------------------------
-    // 4) Validate items and prepare docs
-    // -------------------------------
+    // ---------------------------------
+    // 6. Validate items & build docs
+    // ---------------------------------
     const skippedItems = [];
     const docsToInsert = [];
 
@@ -170,9 +172,9 @@ export const importOutstandingFromTally = async (req, res) => {
       }
     }
 
-    // -------------------------------
-    // 5) Bulk insert docs
-    // -------------------------------
+    // ---------------------------------
+    // 7. Bulk insert docs
+    // ---------------------------------
     let insertedCount = 0;
 
     if (docsToInsert.length > 0) {
@@ -215,9 +217,9 @@ export const importOutstandingFromTally = async (req, res) => {
       }
     }
 
-    // -------------------------------
-    // 6) Build response
-    // -------------------------------
+    // ---------------------------------
+    // 8. Build response
+    // ---------------------------------
     const response = buildBulkResponse({
       entityName: "Outstanding",
       totalReceived: data.length,
