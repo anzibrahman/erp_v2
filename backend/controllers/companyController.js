@@ -172,6 +172,7 @@ export const getCompanies = async (req, res) => {
   }
 };
 
+
 export const updateCompany = async (req, res) => {
   try {
     const owner = req.user?.id;

@@ -35,7 +35,7 @@ const VoucherSeriesSettings = () => {
       icon: <TbFileInvoice />,
      to: ROUTES.settingsVoucherSeriesList,
       active: true,
-      from: "saleOrder",
+      from: "reciept",
     },
   ];
 

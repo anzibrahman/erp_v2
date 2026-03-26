@@ -299,7 +299,7 @@ export default function MobileWalletCard({
               title="Cash / Bank"
               description="Ledger & balance"
               icon={Banknote}
-              onClick={() => navigate(ROUTES.cashBank)}
+              onClick={() => navigate(ROUTES.CashBankBalancePage)}
               iconClassName="rounded-xl bg-teal-100 text-teal-500"
               className="border-slate-100 bg-gradient-to-r from-teal-50/80 to-white"
               wide
