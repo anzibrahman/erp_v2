@@ -131,6 +131,19 @@ function buildCalcItemFromStaged(stagedItem) {
       ) || 0,
     taxRate:
       Number(stagedItem.productDetail?.taxRate ?? stagedItem.taxRate ?? 0) || 0,
+    cgst: Number(stagedItem.productDetail?.cgst ?? stagedItem?.cgst ?? 0) || 0,
+    sgst: Number(stagedItem.productDetail?.sgst ?? stagedItem?.sgst ?? 0) || 0,
+    igst: Number(stagedItem.productDetail?.igst ?? stagedItem?.igst ?? 0) || 0,
+    cess: Number(stagedItem.productDetail?.cess ?? stagedItem?.cess ?? 0) || 0,
+    addl_cess:
+      Number(
+        stagedItem.productDetail?.addl_cess ??
+          stagedItem.productDetail?.addlCess ??
+          stagedItem?.addl_cess ??
+          stagedItem?.addlCess ??
+          0,
+      ) || 0,
+    taxType: stagedItem?.taxType || "igst",
     taxInclusive: Boolean(stagedItem.taxInclusive),
     discountType: stagedItem.discountType || "percentage",
     discountPercentage: Number(stagedItem.discountPercentage) || 0,
@@ -159,6 +172,11 @@ function buildProductDetail(product) {
     product_name: detail?.product_name || detail?.name || "Untitled Product",
     hsn: detail?.hsn || detail?.hsn_code || "",
     unit: detail?.unit || "",
+    cgst: Number(detail?.cgst) || 0,
+    sgst: Number(detail?.sgst) || 0,
+    igst: Number(detail?.igst) || 0,
+    cess: Number(detail?.cess) || 0,
+    addl_cess: Number(detail?.addl_cess ?? detail?.addlCess) || 0,
     taxRate:
       detail?.taxRate != null
         ? Number(detail.taxRate) || 0
@@ -176,6 +194,11 @@ function createStagedItemFromTransactionItem(item) {
     hsn: item?.hsn,
     unit: item?.unit,
     taxRate: item?.taxRate,
+    cgst: item?.cgst,
+    sgst: item?.sgst,
+    igst: item?.igst,
+    cess: item?.cess,
+    addl_cess: item?.addl_cess ?? item?.addlCess,
     priceLevels: item?.priceLevels,
   });
 
@@ -184,6 +207,7 @@ function createStagedItemFromTransactionItem(item) {
     originalQuantity: billedQty,
     productDetail: detail,
     rate: Number(item?.rate) || 0,
+    taxType: item?.taxType || "igst",
     initialPriceSource: item?.initialPriceSource || "manual",
     taxInclusive: Boolean(item?.taxInclusive),
     actualQty,
@@ -216,8 +240,14 @@ function buildEditableItem(productId, stagedItem) {
     hsn: detail?.hsn || "",
     unit: detail?.unit || "",
     taxRate: getProductTaxRate(detail),
+    cgst: Number(detail?.cgst) || 0,
+    sgst: Number(detail?.sgst) || 0,
+    igst: Number(detail?.igst) || 0,
+    cess: Number(detail?.cess) || 0,
+    addl_cess: Number(detail?.addl_cess ?? detail?.addlCess) || 0,
     priceLevels: Array.isArray(detail?.priceLevels) ? detail.priceLevels : [],
     rate: Number(stagedItem?.rate) || 0,
+    taxType: stagedItem?.taxType || "igst",
     initialPriceSource: stagedItem?.initialPriceSource || "manual",
     actualQty: Number(stagedItem?.actualQty ?? stagedItem?.quantity) || 0,
     billedQty: Number(stagedItem?.billedQty ?? stagedItem?.quantity) || 0,
@@ -623,6 +653,7 @@ export default function ProductSelectPage() {
   const loadMoreRef = useRef(null);
   const didSeedRef = useRef(false);
   const reduxPriceLevel = useSelector((state) => state.transaction.priceLevel);
+  const taxType = useSelector((state) => state.transaction.taxType);
   const transactionItems = useSelector((state) => state.transaction.items);
   const party = useSelector((state) => state.transaction.party);
   const cmp_id = useSelector((state) => state.company.selectedCompanyId) || "";
@@ -881,6 +912,7 @@ export default function ProductSelectPage() {
           originalQuantity: 0,
           productDetail,
           rate,
+          taxType: taxType || "igst",
           initialPriceSource: source,
           taxInclusive: false,
           actualQty: 1,
@@ -1099,6 +1131,12 @@ export default function ProductSelectPage() {
         priceLevels: Array.isArray(detail?.priceLevels) ? detail.priceLevels : [],
         priceLevel: appliedPriceLevel || null,
         rate: Number(staged?.rate) || 0,
+        cgst: Number(detail?.cgst) || 0,
+        sgst: Number(detail?.sgst) || 0,
+        igst: Number(detail?.igst) || 0,
+        cess: Number(detail?.cess) || 0,
+        addl_cess: Number(detail?.addl_cess ?? detail?.addlCess) || 0,
+        taxType: staged?.taxType || taxType || "igst",
         initialPriceSource: staged?.initialPriceSource || "manual",
         actualQty: deltaQuantity,
         billedQty: deltaQuantity,
@@ -1120,7 +1158,7 @@ export default function ProductSelectPage() {
     }
 
     navigate(ROUTES.createOrder);
-  }, [appliedPriceLevel, dispatch, navigate, stagedItems]);
+  }, [appliedPriceLevel, dispatch, navigate, stagedItems, taxType]);
 
   useEffect(() => {
     setHeaderOptions({

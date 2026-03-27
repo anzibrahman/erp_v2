@@ -1,7 +1,14 @@
 import express from "express";
 
 import { protect } from "../../middleware/authMiddleware.js";
-import { getSeriesByVoucher,createVoucherSeries,updateVoucherSeries,deleteVoucherSeriesById,getNextVoucherSeriesNumber } from "../../controllers/voucherSerieController.js";
+import {
+  getSeriesByVoucher,
+  createVoucherSeries,
+  updateVoucherSeries,
+  deleteVoucherSeriesById,
+  getNextVoucherSeriesNumber,
+  createSaleOrder,
+} from "../../controllers/voucherSerieController.js";
 
 const router = express.Router();
 
@@ -23,4 +30,5 @@ router.get(
   protect,
   getNextVoucherSeriesNumber
 );
+router.post("/createSaleOrder", protect, createSaleOrder);
 export default router;

@@ -1,4 +1,5 @@
 import { createSlice } from "@reduxjs/toolkit";
+import { calculateItemAmounts, calculateItemsWithTotals } from "@/utils/salesCalculation";
 
 function normalizeAdditionalCharge(row) {
   const baseValue = Number(row?.value) || 0;
@@ -35,61 +36,14 @@ function enrichSelectedSeries(series) {
     prefix,
     suffix,
     widthOfNumericalPart: Number(series?.widthOfNumericalPart) || 1,
-    transactionNumber: [prefix, voucherNumber, suffix]
+    voucherNumber: [prefix, voucherNumber, suffix]
       .filter(Boolean)
       .join(" / "),
   };
 }
 
 export function recalculateItem(item) {
-  const billedQty = Number(item?.billedQty) || 0;
-  const rate = Number(item?.rate) || 0;
-  const taxRate = Number(item?.taxRate) || 0;
-  const discountType = item?.discountType || "percentage";
-  const discountPercentage = Number(item?.discountPercentage) || 0;
-  const discountAmountValue = Number(item?.discountAmount) || 0;
-  const taxInclusive = Boolean(item?.taxInclusive);
-
-  const lineTotal = rate * billedQty;
-  let baseBeforeTax;
-  let effectiveDiscountAmount;
-  let taxableAmount;
-  let taxAmount;
-  let totalAmount;
-
-  if (taxInclusive) {
-    const divisor = 1 + taxRate / 100;
-    baseBeforeTax = divisor ? lineTotal / divisor : lineTotal;
-  } else {
-    baseBeforeTax = lineTotal;
-  }
-
-  if (discountType === "percentage") {
-    effectiveDiscountAmount = (baseBeforeTax * discountPercentage) / 100;
-  } else {
-    effectiveDiscountAmount = discountAmountValue;
-  }
-
-  effectiveDiscountAmount = Math.min(
-    Math.max(effectiveDiscountAmount, 0),
-    baseBeforeTax,
-  );
-
-  taxableAmount = baseBeforeTax - effectiveDiscountAmount;
-  if (taxableAmount < 0) taxableAmount = 0;
-
-  taxAmount = (taxableAmount * taxRate) / 100;
-  totalAmount = taxableAmount + taxAmount;
-
-  item.basePrice = baseBeforeTax;
-  item.discountType = discountType;
-  item.discountPercentage = discountPercentage;
-  item.discountAmount = effectiveDiscountAmount;
-  item.taxableAmount = taxableAmount;
-  item.taxAmount = taxAmount;
-  item.totalAmount = totalAmount;
-
-  return item;
+  return calculateItemAmounts(item, item?.taxType || "igst");
 }
 
 function resolveItemPriceLevelRate(item, nextPriceLevel) {
@@ -122,31 +76,11 @@ function repriceAllItemsInternal(state) {
 }
 
 function recalculateTotals(state) {
-  const itemTotals = state.items.reduce(
-    (accumulator, item) => {
-      accumulator.subTotal += Number(item?.basePrice) || 0;
-      accumulator.totalDiscount += Number(item?.discountAmount) || 0;
-      accumulator.taxableAmount += Number(item?.taxableAmount) || 0;
-      accumulator.totalTaxAmount += Number(item?.taxAmount) || 0;
-      accumulator.totalIgstAmt += Number(item?.taxAmount) || 0;
-      accumulator.itemTotal += Number(item?.totalAmount) || 0;
-      return accumulator;
-    },
-    {
-      subTotal: 0,
-      totalDiscount: 0,
-      taxableAmount: 0,
-      totalTaxAmount: 0,
-      totalIgstAmt: 0,
-      totalCessAmt: 0,
-      totalAddlCessAmt: 0,
-      itemTotal: 0,
-      totalAdditionalCharge: 0,
-      amountWithAdditionalCharge: 0,
-      finalAmount: 0,
-      roundOff: 0,
-    }
+  const { items, totals: itemTotals } = calculateItemsWithTotals(
+    state.items,
+    state.taxType,
   );
+  state.items = items;
 
   const totalAdditionalCharge = state.additionalCharges.reduce(
     (accumulator, charge) => accumulator + (Number(charge?.finalValue) || 0),
@@ -166,6 +100,7 @@ const initialState = {
   voucherType: "saleOrder",
   transactionDate: null,
   selectedSeries: null,
+  taxType: "igst",
   despatchDetails: {
     title: "Despatch Details",
     challanNo: "",
@@ -188,6 +123,8 @@ const initialState = {
     taxableAmount: 0,
     totalTaxAmount: 0,
     totalIgstAmt: 0,
+    totalCgstAmt: 0,
+    totalSgstAmt: 0,
     totalCessAmt: 0,
     totalAddlCessAmt: 0,
     itemTotal: 0,
@@ -252,10 +189,23 @@ const transactionSlice = createSlice({
       state.despatchDetails = { ...initialState.despatchDetails };
     },
     setParty(state, action) {
-      state.party = action.payload || null;
+      const party = action.payload || null;
+      state.party = party;
+      state.taxType = party?.taxType || "igst";
+      state.items = state.items.map((item) => ({
+        ...item,
+        taxType: party?.taxType || "igst",
+      }));
+      recalculateTotals(state);
     },
     clearParty(state) {
       state.party = null;
+      state.taxType = "igst";
+      state.items = state.items.map((item) => ({
+        ...item,
+        taxType: "igst",
+      }));
+      recalculateTotals(state);
     },
     setAdditionalCharges(state, action) {
       const rows = Array.isArray(action.payload) ? action.payload : [];
@@ -277,11 +227,15 @@ const transactionSlice = createSlice({
         const incomingBilledQty = Number(incomingItem.billedQty) || 0;
 
         if (existingItem) {
-          existingItem.actualQty =
-            (Number(existingItem.actualQty) || 0) + incomingActualQty;
-          existingItem.billedQty =
-            (Number(existingItem.billedQty) || 0) + incomingBilledQty;
-          recalculateItem(existingItem);
+          Object.assign(
+            existingItem,
+            recalculateItem({
+              ...existingItem,
+              actualQty: (Number(existingItem.actualQty) || 0) + incomingActualQty,
+              billedQty: (Number(existingItem.billedQty) || 0) + incomingBilledQty,
+              taxType: existingItem.taxType || state.taxType,
+            }),
+          );
           return;
         }
 
@@ -289,6 +243,7 @@ const transactionSlice = createSlice({
           recalculateItem({
             ...incomingItem,
             priceLevel: state.priceLevel,
+            taxType: incomingItem?.taxType || state.taxType,
           })
         );
       });
@@ -302,8 +257,14 @@ const transactionSlice = createSlice({
       const existingItem = state.items.find((item) => item.id === id);
       if (!existingItem) return;
 
-      Object.assign(existingItem, changes);
-      recalculateItem(existingItem);
+      Object.assign(
+        existingItem,
+        recalculateItem({
+          ...existingItem,
+          ...changes,
+          taxType: changes?.taxType || existingItem.taxType || state.taxType,
+        }),
+      );
       recalculateTotals(state);
     },
     setPriceLevel(state, action) {

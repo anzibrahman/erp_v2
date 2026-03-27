@@ -95,7 +95,7 @@ export default function TransactionHeader({
 
   const selectedDate = getSafeDate(transactionDate);
   const voucherParts = getVoucherParts(effectiveSeries);
-  const transactionNumber = formatVoucherForUi(voucherParts);
+  const voucherNumber = formatVoucherForUi(voucherParts);
 
   useEffect(() => {
     if (!cmp_id) return;
@@ -136,7 +136,7 @@ export default function TransactionHeader({
       voucherNumber: voucherParts.number,
       voucherSuffix: voucherParts.suffix,
       // if backend still expects combined number, keep this:
-      [numberField]: transactionNumber,
+      [numberField]: voucherNumber,
     }));
   }, [
     numberField,
@@ -147,7 +147,7 @@ export default function TransactionHeader({
     voucherParts.prefix,
     voucherParts.number,
     voucherParts.suffix,
-    transactionNumber,
+    voucherNumber,
   ]);
 
   const handleSelectSeries = (series) => {
@@ -187,7 +187,7 @@ export default function TransactionHeader({
                   {effectiveSeries?.seriesName || "Series"}
                 </span>
                 <span className="text-[10px] text-slate-500">
-                  {isLoading ? "Loading..." : `No: #${transactionNumber}`}
+                  {isLoading ? "Loading..." : `No: #${voucherNumber}`}
                 </span>
               </button>
             </div>

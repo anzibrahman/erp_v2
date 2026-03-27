@@ -567,9 +567,9 @@ function ItemsSection() {
                         type="button"
                         onClick={() => setEditingItemId(item.id)}
                         disabled={!hasParty}
-                        className="mt-1 inline-flex items-center gap-1 rounded-full border border-teal-200 bg-white px-2.5 py-1 text-[11px] font-medium text-teal-700 transition hover:bg-teal-50 disabled:cursor-not-allowed disabled:opacity-60"
+                        className="mt-3 inline-flex items-center gap-1 rounded-full border  bg-white px-2.5 py-1 text-[10px] font-medium text-gray-700 transition hover:bg-teal-50 disabled:cursor-not-allowed disabled:opacity-60"
                       >
-                        <Pencil className="h-3.5 w-3.5" />
+                        <Pencil className="h-3 w-3" />
                         Edit
                       </button>
                     </div>
@@ -699,14 +699,14 @@ function SummarySection({
               <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">
                 Order Review
               </p>
-              <p className="mt-1 text-xs text-slate-500">
+              {/* <p className="mt-1 text-xs text-slate-500">
                 {items.length} item{items.length === 1 ? "" : "s"} included in this order
-              </p>
+              </p> */}
             </div>
-            <div className="rounded-xl border border-sky-200 bg-white px-3 py-2 text-right text-slate-900">
-              <p className="text-[10px] uppercase tracking-[0.16em] text-slate-500">
+            <div className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-right text-slate-900">
+              {/* <p className="text-[10px] uppercase tracking-[0.16em] text-slate-500">
                 Final Amount
-              </p>
+              </p> */}
               <p className="text-sm font-semibold">
                 {formatCurrency(totals?.finalAmount)}
               </p>
@@ -819,14 +819,28 @@ export default function SalesCreatePage() {
           billedQty: Number(item?.billedQty) || 0,
           actualQty: Number(item?.actualQty) || 0,
           taxRate: Number(item?.taxRate) || 0,
+          cgst: Number(item?.cgst) || 0,
+          sgst: Number(item?.sgst) || 0,
+          igst: Number(item?.igst) || 0,
+          cess: Number(item?.cess) || 0,
+          addl_cess: Number(item?.addl_cess ?? item?.addlCess) || 0,
+          tax_type: item?.taxType || "igst",
           basePrice: Number(item?.basePrice) || 0,
           discountType: item?.discountType || "percentage",
           discountPercentage: Number(item?.discountPercentage) || 0,
           discountAmount: Number(item?.discountAmount) || 0,
           taxableAmount: Number(item?.taxableAmount) || 0,
+          taxable_amount: Number(item?.taxable_amount ?? item?.taxableAmount) || 0,
+          igst_amount: Number(item?.igst_amount) || 0,
+          cgst_amount: Number(item?.cgst_amount) || 0,
+          sgst_amount: Number(item?.sgst_amount) || 0,
           taxAmount: Number(item?.taxAmount) || 0,
+          tax_amount: Number(item?.tax_amount ?? item?.taxAmount) || 0,
+          cess_amount: Number(item?.cess_amount) || 0,
+          addl_cess_amount: Number(item?.addl_cess_amount) || 0,
           total: Number(item?.totalAmount) || 0,
           totalAmount: Number(item?.totalAmount) || 0,
+          total_amount: Number(item?.total_amount ?? item?.totalAmount) || 0,
           taxInclusive: Boolean(item?.taxInclusive),
           isTaxInclusive: Boolean(item?.taxInclusive),
           description: item?.description || "",
@@ -836,7 +850,15 @@ export default function SalesCreatePage() {
         subTotal: Number(totals?.subTotal) || 0,
         totalDiscount: Number(totals?.totalDiscount) || 0,
         taxableAmount: Number(totals?.taxableAmount) || 0,
+        total_igst_amt: Number(totals?.total_igst_amt ?? totals?.totalIgstAmt) || 0,
+        total_cgst_amt: Number(totals?.total_cgst_amt ?? totals?.totalCgstAmt) || 0,
+        total_sgst_amt: Number(totals?.total_sgst_amt ?? totals?.totalSgstAmt) || 0,
+        total_cess_amt: Number(totals?.total_cess_amt ?? totals?.totalCessAmt) || 0,
+        total_addl_cess_amt:
+          Number(totals?.total_addl_cess_amt ?? totals?.totalAddlCessAmt) || 0,
         totalTaxAmount: Number(totals?.totalTaxAmount) || 0,
+        total_tax_amount: Number(totals?.total_tax_amount ?? totals?.totalTaxAmount) || 0,
+        item_total: Number(totals?.item_total ?? totals?.itemTotal) || 0,
         totalAdditionalCharge: Number(totals?.totalAdditionalCharge) || 0,
         amountWithAdditionalCharge:
           Number(totals?.amountWithAdditionalCharge) || 0,
