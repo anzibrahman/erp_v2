@@ -17,7 +17,7 @@ const SettingsPage = lazy(() => import("@/pages/settings/settings"));
 const OutstandingsPage = lazy(
   () => import("@/pages/oustanding/OutstandingPartyListPage"),
 );
-const StatementsPage = lazy(() => import("@/pages/Home/StatementsPage"));
+const DaybookPage = lazy(() => import("@/pages/Home/DaybookPage"));
 const StockRegisterPage = lazy(() => import("@/pages/Home/StockRegisterPage"));
 const CashBankBalancePage = lazy(
   () => import("@/pages/party/CashBankBalancePage"),
@@ -65,7 +65,7 @@ export const appRoutes = (
       path={ROUTES.outstandingPartyDetail}
       element={<OutstandingPartyDetailPage />}
     />
-    <Route path={ROUTES.statements} element={<StatementsPage />} />
+    <Route path={ROUTES.daybook} element={<DaybookPage />} />
     <Route path={ROUTES.stockRegister} element={<StockRegisterPage />} />
     <Route
       path={ROUTES.CashBankBalancePage}

@@ -1,6 +1,6 @@
 import SaleOrder from "../Model/SaleOrder.js";
 
-const DEFAULT_VOUCHER_TYPES = ["saleOrder"];
+const DEFAULT_VOUCHER_TYPES = ["saleOrder", "receipt"];
 
 function createHttpError(message, statusCode = 500) {
   const error = new Error(message);
@@ -133,8 +133,7 @@ export async function getVouchers(req, res) {
       date: doc.date,
       voucher_number: doc.voucher_number,
       party_name: doc.party_snapshot?.name || null,
-      debit: 0,
-      credit: Number(doc.totals?.final_amount) || 0,
+      amount: Number(doc.totals?.final_amount) || 0,
       status: doc.status || null,
     }));
 

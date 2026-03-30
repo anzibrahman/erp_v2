@@ -15,7 +15,7 @@ export const ROUTES = {
 
   outstanding: "/outstanding",
     outstandingPartyDetail: "/outstanding/party/:partyId",
-  statements: "/statements",
+  daybook: "/daybook",
   stockRegister: "/stock-register",
   CashBankBalancePage: "/cash-bank",
   createOrder: "/create-order",

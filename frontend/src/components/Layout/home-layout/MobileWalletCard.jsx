@@ -209,7 +209,7 @@ export default function MobileWalletCard({
 
           <button
             type="button"
-            onClick={() => navigate(ROUTES.statements)}
+            onClick={() => navigate(ROUTES.daybook)}
             className="relative mb-5 block w-full overflow-hidden rounded-2xl border border-white/10 bg-white/10 py-6 text-center backdrop-blur-sm transition-colors hover:bg-white/15"
           >
             <div className="absolute left-1/4 right-1/4 top-0 h-px bg-gradient-to-r from-transparent via-white/30 to-transparent" />
@@ -280,9 +280,9 @@ export default function MobileWalletCard({
             />
 
             <QuickActionCard
-              title="Statements"
+              title="Daybook"
               icon={FileText}
-              onClick={() => navigate(ROUTES.statements)}
+              onClick={() => navigate(ROUTES.daybook)}
               iconClassName="rounded-xl bg-indigo-100 text-indigo-500"
               className="border-slate-100 bg-white !h-18"
               layout="horizontal" // icon + text in a row

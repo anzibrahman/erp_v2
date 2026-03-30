@@ -26,7 +26,7 @@ export const routeTitleMap = {
   [ROUTES.mastersPartyList]: "Parties",
   [ROUTES.mastersPartyRegister]: "Party",
   [ROUTES.outstanding]: "Outstandings",
-  [ROUTES.statements]: "Statements",
+  [ROUTES.daybook]: "Daybook",
   [ROUTES.stockRegister]: "Stock Register",
   [ROUTES.cashBank]: "Cash / Bank",
   [ROUTES.createOrder]: "Create Order",
