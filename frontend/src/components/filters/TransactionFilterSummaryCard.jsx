@@ -10,19 +10,19 @@ export default function TransactionFilterSummaryCard({
   onOpenFilters,
 }) {
   return (
-    <div className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
+    <div className="overflow-hidden rounded-lg border border-slate-200 bg-[#3e5c76] shadow-sm">
       <div className="flex items-center justify-between gap-3">
         <div className="min-w-0 px-3 py-3">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-400">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/90">
             {title}
           </p>
-          <p className="mt-2 flex items-center gap-1.5 text-[11px] font-bold text-slate-800">
-            <CalendarRange className="h-4 w-4 text-slate-400" />
+          <p className="mt-2 flex items-center gap-1.5 text-[11px] font-bold text-slate-300">
+            <CalendarRange className="h-4 w-4 " />
             {fromLabel}
-            <span className="text-slate-300">-</span>
+            <span className="text-white">-</span>
             {toLabel}
           </p>
-          <p className="mt-1 truncate text-xs text-slate-500">{subtitle}</p>
+          <p className="mt-1 truncate text-xs text-slate-300">{subtitle}</p>
         </div>
 
         <button

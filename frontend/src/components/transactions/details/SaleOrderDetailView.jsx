@@ -71,7 +71,7 @@ export default function SaleOrderDetailView({ saleOrder }) {
 
   return (
     <div className="mx-auto flex w-full  flex-col gap-3 py-4 px-1">
-      <section className="overflow-hidden rounded-xl border border-slate-200 bg-gradient-to-br from-slate-900 via-slate-800 to-sky-900 px-4 py-4 text-white shadow-sm">
+      <section className="overflow-hidden rounded-xl  border-white border-4 bg-[#757bc8] px-4 py-4 text-white shadow-sm">
         <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
           <div className="space-y-1.5">
             <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-200/80">

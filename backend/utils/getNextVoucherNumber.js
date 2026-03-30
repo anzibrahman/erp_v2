@@ -46,9 +46,26 @@ export async function getNextVoucherNumber({
     throw new Error("Series not found");
   }
 
+  const currentNumber = Number(existingSeries.currentNumber) || 1;
+  const widthOfNumericalPart = Number(existingSeries.widthOfNumericalPart) || 1;
+  const paddedNumber = String(currentNumber).padStart(
+    widthOfNumericalPart,
+    "0"
+  );
+  const voucherNumber = formatVoucherNumber(
+    existingSeries.prefix,
+    paddedNumber,
+    existingSeries.suffix
+  );
+
   const updatedVoucherSeries = await VoucherSeries.findOneAndUpdate(
     filter,
-    { $inc: { "series.$.currentNumber": 1 } },
+    {
+      $set: {
+        "series.$.lastUsedNumber": currentNumber,
+      },
+      $inc: { "series.$.currentNumber": 1 },
+    },
     { new: true, session }
   );
 
@@ -64,19 +81,10 @@ export async function getNextVoucherNumber({
     throw new Error("Series not found");
   }
 
-  const paddedNumber = String(updatedSeries.currentNumber).padStart(
-    updatedSeries.widthOfNumericalPart,
-    "0"
-  );
-  const voucherNumber = formatVoucherNumber(
-    updatedSeries.prefix,
-    paddedNumber,
-    updatedSeries.suffix
-  );
-
   return {
     series: updatedSeries,
-    nextNumber: updatedSeries.currentNumber,
+    nextNumber: currentNumber,
+    nextAvailableNumber: updatedSeries.currentNumber,
     voucherNumber,
   };
 }

@@ -134,6 +134,16 @@ const initialState = {
   },
 };
 
+function clearSaleOrderStorage(cmp_id) {
+  if (!cmp_id) return;
+
+  try {
+    localStorage.removeItem(`sale-order-product-filters-${cmp_id}`);
+  } catch (error) {
+    console.error("Failed to clear sale order local storage", error);
+  }
+}
+
 const transactionSlice = createSlice({
   name: "transaction",
   initialState,
@@ -276,6 +286,24 @@ const transactionSlice = createSlice({
       repriceAllItemsInternal(state);
       recalculateTotals(state);
     },
+    resetSaleOrderDraft(state) {
+      const cmp_id = state.cmp_id;
+      const selectedSeries = state.selectedSeries;
+
+      state.transactionDate = null;
+      state.selectedSeries = selectedSeries;
+      state.taxType = initialState.taxType;
+      state.despatchDetails = { ...initialState.despatchDetails };
+      state.party = null;
+      state.priceLevel = null;
+      state.priceLevelObject = null;
+      state.items = [];
+      state.additionalCharges = [];
+      state.totals = { ...initialState.totals };
+      state.cmp_id = cmp_id;
+
+      clearSaleOrderStorage(cmp_id);
+    },
   },
 });
 
@@ -295,6 +323,7 @@ export const {
   setPriceLevel,
   setPriceLevelObject,
   repriceAllItems,
+  resetSaleOrderDraft,
 } = transactionSlice.actions;
 
 export default transactionSlice.reducer;

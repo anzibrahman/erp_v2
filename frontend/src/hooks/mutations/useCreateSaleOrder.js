@@ -3,6 +3,7 @@ import { toast } from "sonner";
 
 import { saleOrderService } from "@/api/services/saleOrder.service";
 import { saleOrderQueryKeys } from "@/hooks/queries/saleOrderQueries";
+import { voucherSeriesKeys } from "@/hooks/queries/voucherSeriesQueries";
 
 export function useCreateSaleOrder(options = {}) {
   const { cmp_id = "", onSuccess, onError, ...mutationOptions } = options;
@@ -19,6 +20,17 @@ export function useCreateSaleOrder(options = {}) {
           saleOrderQueryKeys.detail(saleOrder._id, resolvedCmpId),
           saleOrder,
         );
+      }
+
+      if (resolvedCmpId) {
+        await Promise.all([
+          queryClient.invalidateQueries({
+            queryKey: voucherSeriesKeys.list(resolvedCmpId, "saleOrder"),
+          }),
+          queryClient.invalidateQueries({
+            queryKey: voucherSeriesKeys.nextNumber(resolvedCmpId, "saleOrder"),
+          }),
+        ]);
       }
 
       toast.success(data?.message || "Sales order created");

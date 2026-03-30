@@ -11,7 +11,7 @@ import SummarySection from "@/components/sales/create/SummarySection";
 import { useCreateSaleOrder } from "@/hooks/mutations/useCreateSaleOrder";
 import TransactionHeader from "@/components/TransactionHeader";
 import { ROUTES } from "@/routes/paths";
-import { setCompany } from "@/store/slices/transactionSlice";
+import { resetSaleOrderDraft, setCompany } from "@/store/slices/transactionSlice";
 
 
 export default function SalesCreatePage() {
@@ -41,6 +41,7 @@ export default function SalesCreatePage() {
     onSuccess: (data) => {
       const saleOrder = data?.data?.saleOrder;
       if (saleOrder?._id) {
+        dispatch(resetSaleOrderDraft());
         navigate(
           ROUTES.transactionDetail
             .replace(":voucherType", "saleOrder")
