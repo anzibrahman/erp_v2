@@ -5,16 +5,19 @@ export const ROUTES = {
   home: "/home",
   user: "/user",
   settings: "/settings",
-
-
- settingsDataEntry: "/settings/data-entry",
+  settingsDataEntry: "/settings/data-entry",
   settingsVoucher: "/settings/data-entry/voucher",
   settingsVoucherSeries: "/settings/data-entry/voucher/series",
   settingsVoucherSeriesList: "/settings/data-entry/voucher/series/list",
- settingsVoucherSeriesCreate: "/settings/data-entry/voucher/series/create",
+  settingsVoucherSeriesCreate: "/settings/data-entry/voucher/series/create",
+  settingsPrintConfigurations: "/settings/print-configurations",
+  settingsPrintConfigurationsSaleOrder:
+    "/settings/print-configurations/sale-order",
+  settingsPrintConfigurationsReceipt:
+    "/settings/print-configurations/receipt",
 
   outstanding: "/outstanding",
-    outstandingPartyDetail: "/outstanding/party/:partyId",
+  outstandingPartyDetail: "/outstanding/party/:partyId",
   daybook: "/daybook",
   stockRegister: "/stock-register",
   CashBankBalancePage: "/cash-bank",
@@ -32,8 +35,8 @@ export const ROUTES = {
   mastersProducts: "/masters/products",
   mastersPartyList: "/masters/party/list",
   mastersPartyRegister: "/masters/party/register",
-  BankBalanceListPage:"/bank-balance",
-  CashInHandListPage:'/cash-in-hand',
+  BankBalanceListPage: "/bank-balance",
+  CashInHandListPage: "/cash-in-hand",
 };
 
 export const MASTER_ROUTE_REDIRECTS = {

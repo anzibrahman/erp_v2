@@ -2,6 +2,7 @@ import { MdDataSaverOff } from "react-icons/md";
 import { FiFileText } from "react-icons/fi";
 import { SiSteelseries } from "react-icons/si";
 import { TbFileInvoice } from "react-icons/tb";
+import { LuPrinter } from "react-icons/lu";
 
 import { ROUTES } from "@/routes/paths";
 
@@ -14,6 +15,17 @@ export const settingsRootItems = [
     action: {
       type: "route",
       to: ROUTES.settingsDataEntry,
+    },
+    active: true,
+  },
+  {
+    id: "settings-print-configurations",
+    title: "PRINT CONFIGURATIONS",
+    description: "Configure print settings for your vouchers",
+    icon: LuPrinter,
+    action: {
+      type: "route",
+      to: ROUTES.settingsPrintConfigurations,
     },
     active: true,
   },
@@ -45,6 +57,17 @@ export const voucherSettingsItems = [
     },
     active: true,
   },
+  {
+    id: "voucher-print-configurations",
+    title: "Print Configurations",
+    description: "Configure print layouts for your vouchers",
+    icon: LuPrinter,
+    action: {
+      type: "route",
+      to: ROUTES.settingsPrintConfigurations,
+    },
+    active: true,
+  },
 ];
 
 export const getVoucherSeriesSettingsItems = () => [
@@ -71,6 +94,31 @@ export const getVoucherSeriesSettingsItems = () => [
       to: ROUTES.settingsVoucherSeriesList,
       search: "?voucherType=receipt",
       state: { from: "receipt" },
+    },
+    active: true,
+  },
+];
+
+export const getPrintConfigurationItems = () => [
+  {
+    id: "print-config-sale-order",
+    title: "Sale Order",
+    description: "Configure print settings for sale orders",
+    icon: TbFileInvoice,
+    action: {
+      type: "route",
+      to: ROUTES.settingsPrintConfigurationsSaleOrder,
+    },
+    active: true,
+  },
+  {
+    id: "print-config-receipt",
+    title: "Receipt",
+    description: "Configure print settings for receipts",
+    icon: TbFileInvoice,
+    action: {
+      type: "route",
+      to: ROUTES.settingsPrintConfigurationsReceipt,
     },
     active: true,
   },
