@@ -22,6 +22,28 @@ function formatCompactAmount(value) {
   return Number.isInteger(numeric) ? String(numeric) : numeric.toFixed(2);
 }
 
+async function loadImageAsDataUrl(url) {
+  if (!url) return null;
+
+  try {
+    const response = await fetch(url);
+    if (!response.ok) {
+      return null;
+    }
+
+    const blob = await response.blob();
+
+    return await new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(reader.result);
+      reader.onerror = reject;
+      reader.readAsDataURL(blob);
+    });
+  } catch {
+    return null;
+  }
+}
+
 function getCompanyAddress(org = {}) {
   return [
     org?.flat,
@@ -76,9 +98,9 @@ function normalizeConfigurations(configurations = {}) {
     showBankDetails:
       configurations?.enable_bank_details ??
       false,
-    showTeamsAndConditions:
+    showTermsAndConditions:
       configurations?.enable_terms_conditions ??
-      false,
+      true,
   };
 }
 
@@ -214,6 +236,7 @@ export async function generateSaleOrderPdf({
   org,
   configurations,
   bankDetails,
+  companySettings,
   partyConfig,
 }) {
   const doc = new jsPDF({
@@ -223,8 +246,10 @@ export async function generateSaleOrderPdf({
   });
   const resolvedConfigurations = normalizeConfigurations(configurations);
   const pageWidth = doc.internal.pageSize.getWidth();
+  const pageHeight = doc.internal.pageSize.getHeight();
   const margin = 14;
   let currentY = 14;
+  const companyLogo = await loadImageAsDataUrl(org?.logo);
 
   if (resolvedConfigurations.showPrintTitle && resolvedConfigurations.printTitle) {
     doc.setFont("helvetica", "bold");
@@ -239,30 +264,45 @@ export async function generateSaleOrderPdf({
   }
 
   if (resolvedConfigurations.showCompanyDetails) {
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(12);
-    doc.text(org?.name || "Company", margin, currentY);
-    currentY += 5;
-
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(9);
     const companyLines = [
       getCompanyAddress(org),
       org?.gstNum ? `GST: ${org.gstNum}` : null,
       org?.pan ? `PAN: ${org.pan}` : null,
       org?.mobile ? `Mobile: ${org.mobile}` : null,
       org?.email ? `Email: ${org.email}` : null,
-      org?.pan ? `PAN: ${org.pan}` : null,
-      org?.gstNum ? `GST: ${org.gstNum}` : null,
     ].filter(Boolean);
+    const logoSize = companyLogo ? 20 : 0;
+    const contentX = companyLogo ? margin + logoSize + 4 : margin;
+    const contentWidth = companyLogo ? 110 - logoSize - 4 : 110;
+    const companyStartY = currentY;
+    let companyTextY = currentY;
 
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(12);
+    doc.text(org?.name || "Company", contentX, companyTextY + 4);
+    companyTextY += 9;
+
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(9);
     companyLines.forEach((line) => {
-      const wrappedLines = doc.splitTextToSize(line, 110);
-      doc.text(wrappedLines, margin, currentY);
-      currentY += wrappedLines.length * 4.2;
+      const wrappedLines = doc.splitTextToSize(line, contentWidth);
+      doc.text(wrappedLines, contentX, companyTextY);
+      companyTextY += wrappedLines.length * 4.2;
     });
 
-    currentY += 2;
+    if (companyLogo) {
+      try {
+        doc.addImage(companyLogo, "PNG", margin, companyStartY, logoSize, logoSize);
+      } catch {
+        try {
+          doc.addImage(companyLogo, "JPEG", margin, companyStartY, logoSize, logoSize);
+        } catch {
+          // Ignore logo rendering failures and continue with text layout.
+        }
+      }
+    }
+
+    currentY = Math.max(companyTextY, companyStartY + logoSize) + 2;
   }
 
   doc.setFillColor(241, 245, 249);
@@ -502,6 +542,7 @@ export async function generateSaleOrderPdf({
       fontStyle: "bold",
       halign: "right",
     },
+    showFoot: "lastPage",
   });
 
   currentY = doc.lastAutoTable?.finalY + 8 || currentY + 8;
@@ -559,34 +600,10 @@ export async function generateSaleOrderPdf({
     currentY += amountLines.length * 4.5 + 4;
   }
 
-  if (resolvedConfigurations.showBankDetails) {
-    const bankInfo = bankDetails || org || {};
-    const bankLines = [
-      bankInfo?.bankName ? `Bank: ${bankInfo.bankName}` : null,
-      bankInfo?.accountNumber ? `A/C No: ${bankInfo.accountNumber}` : null,
-      bankInfo?.account ? `A/C No: ${bankInfo.account}` : null,
-      bankInfo?.ifsc ? `IFSC: ${bankInfo.ifsc}` : null,
-    ].filter(Boolean);
-
-    if (bankLines.length) {
-      currentY = ensureSpace(doc, currentY, 22);
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(10);
-      doc.text("Bank Details", margin, currentY);
-      currentY += 5;
-      doc.setFont("helvetica", "normal");
-      doc.setFontSize(9);
-      bankLines.forEach((line) => {
-        doc.text(line, margin, currentY);
-        currentY += 4.5;
-      });
-      currentY += 2;
-    }
-  }
-
-  if (resolvedConfigurations.showTeamsAndConditions) {
-    const terms = Array.isArray(org?.termsAndConditions)
-      ? org.termsAndConditions
+  const terms = Array.isArray(org?.termsAndConditions)
+    ? org.termsAndConditions
+    : Array.isArray(companySettings?.dataEntry?.order?.termsAndConditions)
+      ? companySettings.dataEntry.order.termsAndConditions
       : Array.isArray(configurations?.termsAndConditions)
         ? configurations.termsAndConditions
         : typeof configurations?.termsAndConditions === "string"
@@ -596,24 +613,87 @@ export async function generateSaleOrderPdf({
               .filter(Boolean)
           : [];
 
-    if (terms.length) {
-      currentY = ensureSpace(doc, currentY, 24);
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(10);
-      doc.text("Terms & Conditions", margin, currentY);
-      currentY += 5;
-      doc.setFont("helvetica", "normal");
-      doc.setFontSize(9);
+  const bankInfo = bankDetails || org || {};
+  const footerBankLines = [
+    bankInfo?.partyName && bankInfo?.bank_name
+      ? `Bank Name: ${bankInfo.partyName} (${bankInfo.bank_name})`
+      : bankInfo?.bank_name
+        ? `Bank Name: ${bankInfo.bank_name}`
+        : bankInfo?.bankName
+          ? `Bank Name: ${bankInfo.bankName}`
+          : null,
+    bankInfo?.ifsc ? `IFSC Code: ${bankInfo.ifsc}` : null,
+    bankInfo?.ac_no
+      ? `Account Number: ${bankInfo.ac_no}`
+      : bankInfo?.accountNumber
+        ? `Account Number: ${bankInfo.accountNumber}`
+        : bankInfo?.account
+          ? `Account Number: ${bankInfo.account}`
+          : null,
+    bankInfo?.branch ? `Branch: ${bankInfo.branch}` : null,
+  ].filter(Boolean);
 
-      terms.forEach((term, index) => {
+  if (resolvedConfigurations.showTermsAndConditions && terms.length) {
+    const estimatedTermsHeight =
+      9 +
+      terms.reduce((total, term, index) => {
         const lines = doc.splitTextToSize(
           `${index + 1}. ${term}`,
           pageWidth - margin * 2
         );
-        doc.text(lines, margin, currentY);
-        currentY += lines.length * 4.5;
+
+        return total + lines.length * 4.5;
+      }, 0);
+
+    currentY = ensureSpace(doc, currentY, estimatedTermsHeight + 30);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(10);
+    doc.text("Terms & Conditions", margin, currentY);
+    currentY += 5;
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(9);
+
+    terms.forEach((term, index) => {
+      const lines = doc.splitTextToSize(
+        `${index + 1}. ${term}`,
+        pageWidth - margin * 2
+      );
+      doc.text(lines, margin, currentY);
+      currentY += lines.length * 4.5;
+    });
+
+    currentY += 4;
+  }
+
+  const shouldShowBankDetails =
+    resolvedConfigurations.showBankDetails && footerBankLines.length > 0;
+  const shouldShowFooter =
+    shouldShowBankDetails || Boolean(org?.name);
+
+  if (shouldShowFooter) {
+    const footerTopY = Math.max(currentY + 6, pageHeight - 36);
+    const dividerY = footerTopY - 4;
+    const rightBlockX = pageWidth - margin;
+
+    doc.setDrawColor(226, 232, 240);
+    doc.line(margin, dividerY, pageWidth - margin, dividerY);
+
+    if (shouldShowBankDetails) {
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(9);
+      footerBankLines.forEach((line, index) => {
+        doc.text(line, margin, footerTopY + index * 5);
       });
     }
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(10);
+    doc.text(org?.name || "Company", rightBlockX, footerTopY + 5, {
+      align: "right",
+    });
+    doc.text("Authorized Signatory", rightBlockX, footerTopY + 25, {
+      align: "right",
+    });
   }
 
   const fileName = `SaleOrder-${saleOrder?.voucher_number || "document"}.pdf`;

@@ -6,6 +6,7 @@ import ErrorRetryState from "@/components/common/ErrorRetryState";
 import { useMobileHeader } from "@/components/Layout/HomeLayout";
 import SaleOrderDetailView from "@/components/transactions/details/SaleOrderDetailView";
 import TransactionTypePlaceholder from "@/components/transactions/details/TransactionTypePlaceholder";
+import { useCompanySettingsQuery } from "@/hooks/queries/companySettingsQueries";
 import { usePrintConfigQuery } from "@/hooks/queries/printConfigQueries";
 import { useSaleOrderDetailQuery } from "@/hooks/queries/saleOrderQueries";
 
@@ -50,6 +51,10 @@ export default function TransactionDetailPage({
     voucherType === "saleOrder" ? cmpId : null,
     "sale_order"
   );
+  const companySettingsQuery = useCompanySettingsQuery(
+    voucherType === "saleOrder" ? cmpId : null,
+    voucherType === "saleOrder"
+  );
 
   if (voucherType === "saleOrder") {
     const saleOrder = saleOrderQuery.data || fallbackTransaction;
@@ -89,7 +94,12 @@ export default function TransactionDetailPage({
         saleOrder={saleOrder}
         org={selectedCompany}
         configurations={saleOrderPrintConfigQuery.data?.config || null}
-        bankDetails={selectedCompany?.bankDetails || null}
+        bankDetails={
+          companySettingsQuery.data?.dataEntry?.voucher?.defaultBankAccountId ||
+          selectedCompany?.bankDetails ||
+          null
+        }
+        companySettings={companySettingsQuery.data || null}
       />
     );
   }

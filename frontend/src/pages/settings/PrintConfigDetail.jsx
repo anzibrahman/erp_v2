@@ -93,18 +93,18 @@ const SALE_ORDER_FIELDS = [
     description: "Display total tax amount in the summary.",
     icon: Calculator,
   },
-  // {
-  //   key: "enable_terms_conditions",
-  //   label: "Terms & Conditions",
-  //   description: "Include terms and conditions in the footer.",
-  //   icon: ScrollText,
-  // },
-  // {
-  //   key: "enable_bank_details",
-  //   label: "Bank Details",
-  //   description: "Show bank account details for payment reference.",
-  //   icon: Landmark,
-  // },
+  {
+    key: "enable_terms_conditions",
+    label: "Terms & Conditions",
+    description: "Include terms and conditions in the footer.",
+    icon: ScrollText,
+  },
+  {
+    key: "enable_bank_details",
+    label: "Bank Details",
+    description: "Show bank account details for payment reference.",
+    icon: Landmark,
+  },
   {
     key: "enable_rate",
     label: "Rate",

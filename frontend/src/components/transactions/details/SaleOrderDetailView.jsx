@@ -56,6 +56,7 @@ export default function SaleOrderDetailView({
   org,
   configurations,
   bankDetails,
+  companySettings,
 }) {
   const navigate = useNavigate();
   const totals = saleOrder?.totals || {};
@@ -83,6 +84,7 @@ export default function SaleOrderDetailView({
       org,
       configurations,
       bankDetails,
+      companySettings,
     });
   };
 
